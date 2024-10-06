@@ -17,7 +17,7 @@
  */
 
 #include <click/config.h>
-#include <click/packetbatch.hh>
+#include <click/packetbatchvector.hh>
 #include <click/netmapdevice.hh>
 #if HAVE_DPDK_PACKET_POOL
 # include <click/dpdkdevice.hh>
