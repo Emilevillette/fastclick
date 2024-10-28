@@ -848,6 +848,7 @@ enable_userlevel
 enable_user_multithread
 enable_fullpush_nonatomic
 enable_batch
+enable_vector
 enable_verbose_batch
 enable_auto_batch
 enable_netmap_pool
@@ -1593,6 +1594,7 @@ Optional Features:
                           disable warnings and information about batching
     --enable-auto-batch=[list|jump|port]
                           make vanilla elements batch-compatible automatically
+    --enable-vector       use vector processing instead of queues for batching
     --enable-netmap-pool  use netmap buffers instead of standard Click buffers
     --disable-bpf         Compile without BPF support
     --enable-rand-align   enable random alignment of element
@@ -7303,6 +7305,21 @@ else
 
 =========================================" "$LINENO" 5
 fi
+
+
+
+if test ${enable_vector+y}
+then :
+  enableval=$enable_vector; :
+else $as_nop
+  enable_vector=no
+fi
+
+
+if test "x$enable_vector" = "xyes"; then
+    printf "%s\n" "#define HAVE_VECTOR 1" >>confdefs.h
+fi
+
 
 # Check whether --enable-netmap-pool was given.
 if test ${enable_netmap_pool+y}
@@ -20981,6 +20998,7 @@ Configuration Summary:
     CXXFLAGS:                    ${CXXFLAGS}
 
           Batching:              ${enable_batch}
+   Vector batching:              ${enable_vector}
     Flow Subsystem:              ${enable_flow}
  Context Subsystem:              ${enable_ctx}
        HW Flow API:              ${have_flow_api}
