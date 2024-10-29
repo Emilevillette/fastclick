@@ -157,6 +157,14 @@ else
 =========================================])
 fi
 
+AC_ARG_ENABLE([vector],
+    [AS_HELP_STRING([  --enable-vector], [use vectorized batch processing])],
+    [:], [enable_vector])
+
+if test "x$enable_vector" = "xyes"; then
+    AC_DEFINE([HAVE_VECTOR])
+fi
+
 AC_ARG_ENABLE([netmap-pool],
     [AS_HELP_STRING([  --enable-netmap-pool], [use netmap buffers instead of standard Click buffers])],
     [:], [enable_netmap_pool=no])
