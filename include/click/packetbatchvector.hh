@@ -2,6 +2,7 @@
 #ifndef CLICK_PACKETBATCH_HH
 #define CLICK_PACKETBATCH_HH
 
+#include <vector>
 #include <click/packet.hh>
 CLICK_DECLS
 
@@ -308,7 +309,8 @@ CLICK_DECLS
 /**
  * Equivalent to CLASSIFY_EACH_PACKET but ignore the packet if fnt returns -1
  */
-
+//! initialize properly packetbatches ?
+//! what to do with reinterpret_cast
 #define CLASSIFY_EACH_PACKET_IGNORE(nbatches,fnt,cep_batch,on_finish)\
     {\
         PacketBatch* out[(nbatches)];\
@@ -414,37 +416,41 @@ class PacketBatch {
 //Consider a batch size bigger as bogus (prevent infinite loop on bad pointer manipulation)
 #define MAX_BATCH_SIZE 8192
 
+private:
+    std::vector<Packet*> packets;
+
 public :
+    PacketBatch(void): packets(std::vector<Packet*>()) {}
     /*
      * Return the first packet of the batch
      */
     inline Packet* first() {
-        return (Packet*)this;
+        return packets.front();
     }
 
     /*
      * Set the tail of the batch
      */
     inline void set_tail(Packet* p) {
-        first()->set_prev(p);
+        packets.back() = p;
     }
 
     /*
      * Return the tail of the batch
      */
     inline Packet* tail() {
-        return first()->prev();
+        return packets.back();
     }
-    
+
     /*
      * Append a simply-linked list of packet to the batch.
      * One must therefore pass the tail and the number of packets to do it in constant time. Chances are you
-     * just created that list and can track taht.
+     * just created that list and can track that.
      */
     inline void append_simple_list(Packet* lhead, Packet* ltail, int lcount) {
-        tail()->set_next(lhead);
+        packets.insert(packets.end(), lcount, lhead);
         set_tail(ltail);
-        ltail->set_next(0);
+        //ltail->set_next(0);
         set_count(count() + lcount);
     }
 
@@ -452,7 +458,7 @@ public :
      * Append a proper PacketBatch to this batch.
      */
     inline void append_batch(PacketBatch* head) {
-        tail()->set_next(head->first());
+        packets.insert(packets.end(), head->packets.begin(), head->packets.end());
         set_tail(head->tail());
         set_count(count() + head->count());
     }
@@ -461,18 +467,17 @@ public :
      * Append a packet to the list.
      */
     inline void append_packet(Packet* p) {
-        tail()->set_next(p);
-        set_tail(p);
-        set_count(count() + 1);
+        packets.push_back(p);
     }
 
     /**
      * Return the number of packets in this batch
      */
     inline unsigned count() {
-        unsigned int r = BATCH_COUNT_ANNO(first());
-        assert(r); //If this is a batch, this anno has to be set
-        return r;
+        return packets.size();
+        //unsigned int r = BATCH_COUNT_ANNO(first());
+        //assert(r); //If this is a batch, this anno has to be set
+        //return r;
     }
 
     /**
@@ -485,7 +490,9 @@ public :
      * If the Packet is null, returns no batch.
      */
     inline static PacketBatch* start_head(Packet* p) {
-        return reinterpret_cast<PacketBatch*>(p);
+        PacketBatch* b = new PacketBatch();
+        b->append_packet(p);
+        return b;
     }
 
     /**
@@ -504,10 +511,10 @@ public :
             if (count != 1)
                 click_chatter("BUG in make_tail : last packet is the head, but count is %u",count);
             set_tail(first());
-            first()->set_next(0);
+            //first()->set_next(0); //segfault
         } else {
             set_tail(last);
-            last->set_next(0);
+            //last->set_next(0); //segfault
         }
         return this;
     }
@@ -516,7 +523,7 @@ public :
      * Set the number of packets in this batch
      */
     inline void set_count(unsigned int c) {
-        SET_BATCH_COUNT_ANNO(first(),c);
+        //SET_BATCH_COUNT_ANNO(first(),c); // SEGFAULT ??
     }
 
     /**
@@ -538,18 +545,15 @@ public :
             return;
         }
 
-        int total_count = count();
-
-        second = reinterpret_cast<PacketBatch*>(middle->next());
-        middle->set_next(0);
+        second = new PacketBatch();
+        second->packets = std::vector<Packet*>(packets.begin() + first_batch_count, packets.end());
 
         Packet* second_tail = tail();
         set_tail(middle);
 
         second->set_tail(second_tail);
-        second->set_count(total_count - first_batch_count);
 
-        set_count(first_batch_count);
+        packets.erase(packets.begin() + first_batch_count, packets.end());
     }
 
     /**
@@ -572,18 +576,17 @@ public :
             }
         }
 
-        int total_count = count();
-
-        second = reinterpret_cast<PacketBatch*>(middle->next());
-        middle->set_next(0);
+        second = new PacketBatch();
+        second->packets = std::vector<Packet*>(packets.begin() + first_batch_count, packets.end());
 
         Packet* second_tail = tail();
         set_tail(middle);
 
         second->set_tail(second_tail);
-        second->set_count(total_count - first_batch_count);
 
         set_count(first_batch_count);
+
+        packets.erase(packets.begin() + first_batch_count, packets.end());
     }
 
     inline PacketBatch* split(int first_batch_count) {
@@ -599,10 +602,10 @@ public :
     PacketBatch* pop_front() {
         if (count() == 1)
             return 0;
-        PacketBatch* poped = PacketBatch::start_head(first()->next());
-        poped->set_count(count() -1 );
-        poped->set_tail(tail());
-        return poped;
+        PacketBatch* b = new PacketBatch();
+        b->packets = std::vector<Packet*>(packets.begin() + 1, packets.end());
+        delete this;
+        return b;
     }
 
     /**
@@ -615,8 +618,12 @@ public :
      * @pre The tail->next() packet must be zero
      */
     inline static PacketBatch* make_from_tailed_list(Packet* head, unsigned int size) {
-        PacketBatch* b = reinterpret_cast<PacketBatch*>(head);
-        b->set_count(size);
+        PacketBatch* b = new PacketBatch();
+        Packet* current = head;
+        for (unsigned int i = 1; i < size; i++) {
+            b->append_packet(current);
+            current = current->next();
+        }
         return b;
     }
 
@@ -630,7 +637,6 @@ public :
     inline static PacketBatch* make_from_simple_list(Packet* head, Packet* tail, unsigned int size) {
         PacketBatch* b = make_from_tailed_list(head,size);
         b->set_tail(tail);
-        tail->set_next(0);
         return b;
     }
 
@@ -660,10 +666,8 @@ public :
      */
     inline static PacketBatch* make_from_packet(Packet* p) {
         if (!p) return 0;
-        PacketBatch* b = reinterpret_cast<PacketBatch*>(p);
-        b->set_count(1);
+        PacketBatch* b = new PacketBatch();
         b->set_tail(p);
-        p->set_next(0);
         return b;
     }
 
