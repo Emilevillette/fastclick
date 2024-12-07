@@ -7259,6 +7259,20 @@ if test "x$enable_batch" = "xyes"; then
 
 fi
 
+
+# Check whether --enable-vector was given.
+if test ${enable_vector+y}
+then :
+  enableval=$enable_vector; :
+else $as_nop
+  enable_vector=no
+fi
+
+
+if test "x$enable_vector" = "xyes"; then
+    printf "%s\n" "#define HAVE_VECTOR 1" >>confdefs.h
+fi
+
 # Check whether --enable-verbose-batch was given.
 if test ${enable_verbose_batch+y}
 then :
@@ -7304,20 +7318,6 @@ else
 --enable-auto-batch only accepts jump, list or port as modes
 
 =========================================" "$LINENO" 5
-fi
-
-
-
-if test ${enable_vector+y}
-then :
-  enableval=$enable_vector; :
-else $as_nop
-  enable_vector=no
-fi
-
-
-if test "x$enable_vector" = "xyes"; then
-    printf "%s\n" "#define HAVE_VECTOR 1" >>confdefs.h
 fi
 
 

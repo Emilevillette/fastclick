@@ -92,6 +92,9 @@
 /* Define if Batching support is enabled. */
 #undef HAVE_BATCH
 
+/* Define if Vector Batching is enabled. */
+#undef HAVE_VECTOR
+
 /* Define if Port::push/Port::pull should use bound function pointers. */
 #undef HAVE_BOUND_PORT_TRANSFER
 

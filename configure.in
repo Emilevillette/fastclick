@@ -127,6 +127,14 @@ if test "x$enable_batch" = "xyes"; then
     AC_SUBST(HAVE_BATCH, yes)
 fi
 
+AC_ARG_ENABLE([vector],
+    [AS_HELP_STRING([  --enable-vector], [use vectorized batch processing instead of queues for batching])],
+    [:], [enable_vector=no])
+
+if test "x$enable_vector" = "xyes"; then
+    AC_DEFINE([HAVE_VECTOR])
+fi
+
 AC_ARG_ENABLE([verbose-batch],
     [AS_HELP_STRING([  --disable-verbose-batch], [disable warnings and information about batching])],
     [:], [enable_verbose_batch=yes])
@@ -155,14 +163,6 @@ else
 --enable-auto-batch only accepts jump, list or port as modes
 
 =========================================])
-fi
-
-AC_ARG_ENABLE([vector],
-    [AS_HELP_STRING([  --enable-vector], [use vectorized batch processing])],
-    [:], [enable_vector])
-
-if test "x$enable_vector" = "xyes"; then
-    AC_DEFINE([HAVE_VECTOR])
 fi
 
 AC_ARG_ENABLE([netmap-pool],
