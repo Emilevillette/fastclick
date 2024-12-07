@@ -1,4 +1,4 @@
-// -*- related-file-name: "../../lib/packetbatch.cc" -*-
+// -*- related-file-name: "../../lib/packetbatchvector.cc" -*-
 #ifndef CLICK_PACKETBATCH_HH
 #define CLICK_PACKETBATCH_HH
 

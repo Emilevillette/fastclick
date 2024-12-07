@@ -1,4 +1,4 @@
-// -*- related-file-name: "../include/click/packetbatch.hh" -*-
+// -*- related-file-name: "../include/click/packetbatchlinkedlist.hh" -*-
 /*
  * packetbatch.{cc,hh} -- a batch of packet
  * Tom Barbette
