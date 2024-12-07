@@ -741,6 +741,7 @@ inline void PacketBatch::kill() {
     FOR_EACH_PACKET_SAFE(this,p) {
         p->kill();
     }
+    delete this;
 }
 
 #if HAVE_BATCH_RECYCLE
