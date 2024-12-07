@@ -1,6 +1,6 @@
 // -*- related-file-name: "../../lib/packetbatchvector.cc" -*-
-#ifndef CLICK_PACKETBATCH_HH
-#define CLICK_PACKETBATCH_HH
+#ifndef CLICK_PACKETBATCHVECTOR_HH
+#define CLICK_PACKETBATCHVECTOR_HH
 
 #include <vector>
 #include <click/packet.hh>

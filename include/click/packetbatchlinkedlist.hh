@@ -1,6 +1,6 @@
 // -*- related-file-name: "../../lib/packetbatchlinkedlist.cc" -*-
-#ifndef CLICK_PACKETBATCH_HH
-#define CLICK_PACKETBATCH_HH
+#ifndef CLICK_PACKETBATCHLINKEDLIST_HH
+#define CLICK_PACKETBATCHLINKEDLIST_HH
 
 #include <click/packet.hh>
 CLICK_DECLS
