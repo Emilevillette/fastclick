@@ -5,6 +5,8 @@
 #include <click/packet.hh>
 CLICK_DECLS
 
+//TODO: CLEANUP
+
 /**
  * Iterate over all packets of a batch. The batch cannot be modified during
  *   iteration. Use _SAFE version if you want to modify it on the fly.
@@ -15,27 +17,29 @@ CLICK_DECLS
  * Iterate over all packets of a batch. The batch cannot be modified during
  *   iteration. Use _SAFE version if you want to modify it on the fly.
  */
-#define FOR_EACH_PACKET(batch,p) FOR_EACH_PACKET_LL(batch->first(),p)
+//#define FOR_EACH_PACKET(batch,p) FOR_EACH_PACKET_LL(batch->first(),p)
 
 /**
  * Iterate over all packets of a batch. The current packet can be modified
  *  during iteration as the "next" pointer is read before going in the core of
  *  the loop.
  */
-#define FOR_EACH_PACKET_LL_SAFE(first,p) \
+#define FOR_EACH_PACKET_SAFE_LL(first,p) \
                 Packet* fep_next = ((first != 0)? first->next() : 0 );\
                 Packet* p = first;\
                 for (;p != 0;p=fep_next,fep_next=(p==0?0:p->next()))
 
+// Alias for the old name
+#define FOR_EACH_PACKET_LL_SAFE FOR_EACH_PACKET_SAFE_LL
 
-#define FOR_EACH_PACKET_SAFE(batch,p) FOR_EACH_PACKET_LL_SAFE(batch->first(),p)
+//#define FOR_EACH_PACKET_SAFE(batch,p) FOR_EACH_PACKET_LL_SAFE(batch->first(),p)
 
 /**
  * Execute a function on each packets of a batch. The function may return
  * another packet to replace the current one. This version cannot drop !
  * Use _DROPPABLE version if the function could return null.
  */
-#define EXECUTE_FOR_EACH_PACKET(fnt,batch) \
+#define EXECUTE_FOR_EACH_PACKET_LL(fnt,batch) \
                 Packet* efep_next = ((batch != 0)? batch->first()->next() : 0 );\
                 Packet* p = batch->first();\
                 Packet* last = 0;\
@@ -59,7 +63,7 @@ CLICK_DECLS
  * with the whole batch in argument, the packet causing the stop, and the next
  * reference. This function does not kill any packet by itself.
  */
-#define EXECUTE_FOR_EACH_PACKET_UNTIL_DO(fnt,batch,on_stop) \
+#define EXECUTE_FOR_EACH_PACKET_UNTIL_DO_LL(fnt,batch,on_stop) \
                 Packet* efep_next = ((batch != 0)? batch->first()->next() : 0 );\
                 Packet* p = batch->first();\
                 Packet* last = 0;\
@@ -84,15 +88,15 @@ CLICK_DECLS
                 }
 
 //Variant that will drop the whole batch when fnt return false
-#define EXECUTE_FOR_EACH_PACKET_UNTIL(fnt,batch) \
-    EXECUTE_FOR_EACH_PACKET_UNTIL_DO(fnt, batch, [](PacketBatchLinkedList*& batch, Packet*, Packet*){batch->kill();batch = 0;})
+#define EXECUTE_FOR_EACH_PACKET_UNTIL_LL(fnt,batch) \
+    EXECUTE_FOR_EACH_PACKET_UNTIL_DO_LL(fnt, batch, [](PacketBatchLinkedList*& batch, Packet*, Packet*){batch->kill();batch = 0;})
 
 /*
  * Variant that will drop the remaining packets, but return the batch up to the drop (the packet for which fnt returned true is included.
  * A usage example is a NAT, that translate all packets up to when the state is destroyed. But sometimes there could be unordered packets still coming after the last ACK, or duplicate FIN.
  */
-#define EXECUTE_FOR_EACH_PACKET_UNTIL_DROP(fnt,batch) \
-    EXECUTE_FOR_EACH_PACKET_UNTIL_DO(fnt, batch, [](PacketBatchLinkedList*& batch, Packet* dropped, Packet* next){ if (!next) return; PacketBatchLinkedList* remain = PacketBatchLinkedList::make_from_simple_list(next);batch->set_count(batch->count() - remain->count()); batch->set_tail(dropped); dropped->set_next(0); remain->kill(); })
+#define EXECUTE_FOR_EACH_PACKET_UNTIL_DROP_LL(fnt,batch) \
+    EXECUTE_FOR_EACH_PACKET_UNTIL_DO_LL(fnt, batch, [](PacketBatchLinkedList*& batch, Packet* dropped, Packet* next){ if (!next) return; PacketBatchLinkedList* remain = PacketBatchLinkedList::make_from_simple_list(next);batch->set_count(batch->count() - remain->count()); batch->set_tail(dropped); dropped->set_next(0); remain->kill(); })
 
 /**
  * Execute a function on each packet of a batch.
@@ -107,7 +111,7 @@ CLICK_DECLS
  *
  * Example: EXECUTE_FOR_EACH_PACKET_DROPPABLE([this](Packet* p){return p->push(_nbytes);},batch,[](Packet* p){})
  */
-#define EXECUTE_FOR_EACH_PACKET_DROPPABLE(fnt,batch,on_drop) {\
+#define EXECUTE_FOR_EACH_PACKET_DROPPABLE_LL(fnt,batch,on_drop) {\
                 Packet* efepd_next = ((batch != 0)? batch->first()->next() : 0 );\
                 Packet* p = batch->first();\
                 Packet* last = 0;\
@@ -144,7 +148,7 @@ CLICK_DECLS
  * Same as EXECUTE_FOR_EACH_PACKET_DROPPABLE but build a list of dropped packet
  * instead of calling a function
  */
-#define EXECUTE_FOR_EACH_PACKET_DROP_LIST(fnt,batch,drop_list) \
+#define EXECUTE_FOR_EACH_PACKET_DROP_LIST_LL(fnt,batch,drop_list) \
         PacketBatchLinkedList* drop_list = 0;\
         auto on_drop = [&drop_list](Packet* p) {\
             if (drop_list == 0) {\
@@ -166,7 +170,7 @@ CLICK_DECLS
  * as null after flushing.
  * On_flush is always called on the batch after the last packet.
  */
-#define EXECUTE_FOR_EACH_PACKET_SPLITTABLE(fnt,batch,on_drop,on_flush) {\
+#define EXECUTE_FOR_EACH_PACKET_SPLITTABLE_LL(fnt,batch,on_drop,on_flush) {\
             Packet* next = ((batch != 0)? batch->first()->next() : 0 );\
             Packet* p = batch->first();\
             Packet* last = 0;\
@@ -212,7 +216,7 @@ CLICK_DECLS
  * }
  * EXECUTE_FOR_EACH_PACKET_ADD( fnt, batch );
  */
-#define EXECUTE_FOR_EACH_PACKET_ADD(fnt,batch) {\
+#define EXECUTE_FOR_EACH_PACKET_ADD_LL(fnt,batch) {\
             Packet* next = ((batch != 0)? batch->first()->next() : 0 );\
             Packet* p = batch->first();\
             Packet* last = 0;\
@@ -255,7 +259,7 @@ CLICK_DECLS
  *  classification is finished, usually you want that to be
  *  checked_output_push_batch.
  */
-#define CLASSIFY_EACH_PACKET(nbatches,fnt,cep_batch,on_finish)\
+#define CLASSIFY_EACH_PACKET_LL(nbatches,fnt,cep_batch,on_finish)\
     {\
         PacketBatchLinkedList* out[(nbatches)];\
         bzero(out,sizeof(PacketBatchLinkedList*)*(nbatches));\
@@ -309,7 +313,7 @@ CLICK_DECLS
  * Equivalent to CLASSIFY_EACH_PACKET but ignore the packet if fnt returns -1
  */
 
-#define CLASSIFY_EACH_PACKET_IGNORE(nbatches,fnt,cep_batch,on_finish)\
+#define CLASSIFY_EACH_PACKET_IGNORE_LL(nbatches,fnt,cep_batch,on_finish)\
     {\
         PacketBatchLinkedList* out[(nbatches)];\
         bzero(out,sizeof(PacketBatchLinkedList*)*(nbatches));\
@@ -378,7 +382,7 @@ CLICK_DECLS
  * instead of pull_batch. However this is fine in a source element where
  * anyway the batch must be created packet per packet.
  */
-#define MAKE_BATCH(fnt,head,max) {\
+#define MAKE_BATCH_LL(fnt,head,max) {\
         head = PacketBatchLinkedList::start_head(fnt);\
         if (head != 0) {\
             Packet* last = head->first();\
@@ -698,7 +702,7 @@ public :
     inline PacketBatchLinkedList* clone_batch() {
         PacketBatchLinkedList* head = 0;
         Packet* last = 0;
-        FOR_EACH_PACKET(this, p) {
+        FOR_EACH_PACKET_LL(first(), p) {
             Packet* q = p->clone();
             if (last == 0) {
                 head = start_head(q);
@@ -734,7 +738,7 @@ public :
  * Recycle a whole batch
  */
 inline void PacketBatchLinkedList::kill() {
-    FOR_EACH_PACKET_SAFE(this,p) {
+    FOR_EACH_PACKET_SAFE_LL(first(),p) {
         p->kill();
     }
 }

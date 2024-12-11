@@ -6,6 +6,8 @@
 #include <click/packet.hh>
 CLICK_DECLS
 
+//TODO: CLEANUP
+
 /**
  * Iterate over all packets of a batch. The batch cannot be modified during
  *   iteration. Use _SAFE version if you want to modify it on the fly.
@@ -31,6 +33,8 @@ CLICK_DECLS
                 Packet* p = first;\
                 for (;p != 0;p=fep_next,fep_next=(p==0?0:p->next()))
 
+// Alias for the old name
+#define FOR_EACH_PACKET_VEC_SAFE FOR_EACH_PACKET_SAFE_VEC
 
 //#define FOR_EACH_PACKET_SAFE(batch,p) FOR_EACH_PACKET_VEC_SAFE(batch->first(),p)
 
