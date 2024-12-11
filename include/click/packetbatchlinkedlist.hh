@@ -45,7 +45,7 @@ CLICK_DECLS
                         if (last) {\
                             last->set_next(q);\
                         } else {\
-                            batch = reinterpret_cast<PacketBatch*>(q);\
+                            batch = reinterpret_cast<PacketBatchLinkedList*>(q);\
                         }\
                         q->set_next(efep_next);\
                     }\
@@ -71,7 +71,7 @@ CLICK_DECLS
                         if (last) {\
                             last->set_next(q);\
                         } else {\
-                            batch = reinterpret_cast<PacketBatch*>(q);\
+                            batch = reinterpret_cast<PacketBatchLinkedList*>(q);\
                             batch->set_count(count);\
                         }\
                         q->set_next(efep_next);\
@@ -85,14 +85,14 @@ CLICK_DECLS
 
 //Variant that will drop the whole batch when fnt return false
 #define EXECUTE_FOR_EACH_PACKET_UNTIL(fnt,batch) \
-    EXECUTE_FOR_EACH_PACKET_UNTIL_DO(fnt, batch, [](PacketBatch*& batch, Packet*, Packet*){batch->kill();batch = 0;})
+    EXECUTE_FOR_EACH_PACKET_UNTIL_DO(fnt, batch, [](PacketBatchLinkedList*& batch, Packet*, Packet*){batch->kill();batch = 0;})
 
 /*
  * Variant that will drop the remaining packets, but return the batch up to the drop (the packet for which fnt returned true is included.
  * A usage example is a NAT, that translate all packets up to when the state is destroyed. But sometimes there could be unordered packets still coming after the last ACK, or duplicate FIN.
  */
 #define EXECUTE_FOR_EACH_PACKET_UNTIL_DROP(fnt,batch) \
-    EXECUTE_FOR_EACH_PACKET_UNTIL_DO(fnt, batch, [](PacketBatch*& batch, Packet* dropped, Packet* next){ if (!next) return; PacketBatch* remain = PacketBatch::make_from_simple_list(next);batch->set_count(batch->count() - remain->count()); batch->set_tail(dropped); dropped->set_next(0); remain->kill(); })
+    EXECUTE_FOR_EACH_PACKET_UNTIL_DO(fnt, batch, [](PacketBatchLinkedList*& batch, Packet* dropped, Packet* next){ if (!next) return; PacketBatchLinkedList* remain = PacketBatchLinkedList::make_from_simple_list(next);batch->set_count(batch->count() - remain->count()); batch->set_tail(dropped); dropped->set_next(0); remain->kill(); })
 
 /**
  * Execute a function on each packet of a batch.
@@ -119,7 +119,7 @@ CLICK_DECLS
                 if (last) {\
                     last->set_next(efepd_next);\
                 } else {\
-                    batch = PacketBatch::start_head(efepd_next);\
+                    batch = PacketBatchLinkedList::start_head(efepd_next);\
                 }\
                         count--;\
                         continue;\
@@ -127,7 +127,7 @@ CLICK_DECLS
                         if (last) {\
                             last->set_next(q);\
                         } else {\
-                            batch = reinterpret_cast<PacketBatch*>(q);\
+                            batch = reinterpret_cast<PacketBatchLinkedList*>(q);\
                         }\
                         q->set_next(efepd_next);\
                     }\
@@ -145,10 +145,10 @@ CLICK_DECLS
  * instead of calling a function
  */
 #define EXECUTE_FOR_EACH_PACKET_DROP_LIST(fnt,batch,drop_list) \
-        PacketBatch* drop_list = 0;\
+        PacketBatchLinkedList* drop_list = 0;\
         auto on_drop = [&drop_list](Packet* p) {\
             if (drop_list == 0) {\
-                drop_list = PacketBatch::make_from_packet(p);\
+                drop_list = PacketBatchLinkedList::make_from_packet(p);\
             } else {\
                 drop_list->append_packet(p);\
             }\
@@ -182,13 +182,13 @@ CLICK_DECLS
                     on_drop(p);\
                     count = 0;\
                     last = 0;\
-                    batch = PacketBatch::start_head(next);\
+                    batch = PacketBatchLinkedList::start_head(next);\
                     continue;\
                 } else if (q != p) {\
                     if (last) {\
                         last->set_next(q);\
                     } else {\
-                        batch = reinterpret_cast<PacketBatch*>(q);\
+                        batch = reinterpret_cast<PacketBatchLinkedList*>(q);\
                     }\
                     q->set_next(next);\
                 }\
@@ -222,7 +222,7 @@ CLICK_DECLS
                     if (last) { \
                         last->set_next(q); \
                     } else { \
-                        batch = reinterpret_cast<PacketBatch*>(q);\
+                        batch = reinterpret_cast<PacketBatchLinkedList*>(q);\
                     }\
                     last = q;\
                     count++;\
@@ -257,28 +257,28 @@ CLICK_DECLS
  */
 #define CLASSIFY_EACH_PACKET(nbatches,fnt,cep_batch,on_finish)\
     {\
-        PacketBatch* out[(nbatches)];\
-        bzero(out,sizeof(PacketBatch*)*(nbatches));\
-        PacketBatch* cep_next = ((cep_batch != 0)? reinterpret_cast<PacketBatch*>(cep_batch->first()->next()) : 0 );\
+        PacketBatchLinkedList* out[(nbatches)];\
+        bzero(out,sizeof(PacketBatchLinkedList*)*(nbatches));\
+        PacketBatchLinkedList* cep_next = ((cep_batch != 0)? reinterpret_cast<PacketBatchLinkedList*>(cep_batch->first()->next()) : 0 );\
         Packet* p = cep_batch->first();\
         Packet* last = 0;\
         int last_o = -1;\
         int passed = 0;\
-        for (;p != 0;p=cep_next->first(),cep_next=(p==0?0:reinterpret_cast<PacketBatch*>(p->next()))) {\
+        for (;p != 0;p=cep_next->first(),cep_next=(p==0?0:reinterpret_cast<PacketBatchLinkedList*>(p->next()))) {\
             int o = (fnt(p));\
             if (o < 0 || o>=(int)(nbatches)) o = (nbatches - 1);\
             if (o == last_o) {\
                 passed ++;\
             } else {\
                 if (last == 0) {\
-                    out[o] = reinterpret_cast<PacketBatch*>(p);\
-                    reinterpret_cast<PacketBatch*>(p)->set_count(1);\
-                    reinterpret_cast<PacketBatch*>(p)->set_tail(p);\
+                    out[o] = reinterpret_cast<PacketBatchLinkedList*>(p);\
+                    reinterpret_cast<PacketBatchLinkedList*>(p)->set_count(1);\
+                    reinterpret_cast<PacketBatchLinkedList*>(p)->set_tail(p);\
                 } else {\
                     out[last_o]->set_tail(last);\
                     out[last_o]->set_count(out[last_o]->count() + passed);\
                     if (!out[o]) {\
-                        out[o] = reinterpret_cast<PacketBatch*>(p);\
+                        out[o] = reinterpret_cast<PacketBatchLinkedList*>(p);\
                         out[o]->set_count(1);\
                         out[o]->set_tail(p);\
                     } else {\
@@ -311,14 +311,14 @@ CLICK_DECLS
 
 #define CLASSIFY_EACH_PACKET_IGNORE(nbatches,fnt,cep_batch,on_finish)\
     {\
-        PacketBatch* out[(nbatches)];\
-        bzero(out,sizeof(PacketBatch*)*(nbatches));\
-        PacketBatch* cep_next = ((cep_batch != 0)? reinterpret_cast<PacketBatch*>(cep_batch->first()->next()) : 0 );\
+        PacketBatchLinkedList* out[(nbatches)];\
+        bzero(out,sizeof(PacketBatchLinkedList*)*(nbatches));\
+        PacketBatchLinkedList* cep_next = ((cep_batch != 0)? reinterpret_cast<PacketBatchLinkedList*>(cep_batch->first()->next()) : 0 );\
         Packet* p = cep_batch->first();\
         Packet* last = 0;\
         int last_o = -1;\
         int passed = 0;\
-        for (;p != 0;p=cep_next->first(),cep_next=(p==0?0:reinterpret_cast<PacketBatch*>(p->next()))) {\
+        for (;p != 0;p=cep_next->first(),cep_next=(p==0?0:reinterpret_cast<PacketBatchLinkedList*>(p->next()))) {\
             int o = (fnt(p));\
             if (o>=(nbatches)) o = (nbatches - 1);\
             if (o == last_o) {\
@@ -326,7 +326,7 @@ CLICK_DECLS
             } else {\
                 if (last == 0) {\
                     if (o == -1) continue;\
-                    out[o] = reinterpret_cast<PacketBatch*>(p);\
+                    out[o] = reinterpret_cast<PacketBatchLinkedList*>(p);\
                     out[o]->set_count(1);\
                     out[o]->set_tail(p);\
                 } else {\
@@ -336,7 +336,7 @@ CLICK_DECLS
                     }\
                     if (o != -1) {\
                         if (!out[o]) {\
-                            out[o] = reinterpret_cast<PacketBatch*>(p);\
+                            out[o] = reinterpret_cast<PacketBatchLinkedList*>(p);\
                             out[o]->set_count(1);\
                             out[o]->set_tail(p);\
                         } else {\
@@ -367,7 +367,7 @@ CLICK_DECLS
 
 /**
  * Create a batch by calling multiple times (up to max) a given function and
- *   linking them together in respect to the PacketBatch semantic.
+ *   linking them together in respect to the PacketBatchLinkedList semantic.
  *
  * In most case this function should not be used. Because if you get packets
  * per packets it means you don't get them upstream as a batch. You may prefer
@@ -379,7 +379,7 @@ CLICK_DECLS
  * anyway the batch must be created packet per packet.
  */
 #define MAKE_BATCH(fnt,head,max) {\
-        head = PacketBatch::start_head(fnt);\
+        head = PacketBatchLinkedList::start_head(fnt);\
         if (head != 0) {\
             Packet* last = head->first();\
             unsigned int count = 1;\
@@ -409,7 +409,7 @@ CLICK_DECLS
  *
  * Batches must not mix cloned and unique packets. Use cut to split batches and have part of them cloned.
  */
-class PacketBatch {
+class PacketBatchLinkedList {
 
 //Consider a batch size bigger as bogus (prevent infinite loop on bad pointer manipulation)
 #define MAX_BATCH_SIZE 8192
@@ -449,9 +449,9 @@ public :
     }
 
     /*
-     * Append a proper PacketBatch to this batch.
+     * Append a proper PacketBatchLinkedList to this batch.
      */
-    inline void append_batch(PacketBatch* head) {
+    inline void append_batch(PacketBatchLinkedList* head) {
         tail()->set_next(head->first());
         set_tail(head->tail());
         set_count(count() + head->count());
@@ -484,8 +484,8 @@ public :
      *  until you call make_tail().
      * If the Packet is null, returns no batch.
      */
-    inline static PacketBatch* start_head(Packet* p) {
-        return reinterpret_cast<PacketBatch*>(p);
+    inline static PacketBatchLinkedList* start_head(Packet* p) {
+        return reinterpret_cast<PacketBatchLinkedList*>(p);
     }
 
     /**
@@ -498,7 +498,7 @@ public :
      *
      * This will set up the batch with the last packet. set_next() have to be called for each packet from the head to the @a last packet !
      */
-    inline PacketBatch* make_tail(Packet* last, unsigned int count) {
+    inline PacketBatchLinkedList* make_tail(Packet* last, unsigned int count) {
         set_count(count);
         if (last == 0) {
             if (count != 1)
@@ -526,7 +526,7 @@ public :
      * @param first_batch_count The number of packets in the first batch
      * @param second Reference to set the head of the second batch
      */
-    inline void cut(Packet* middle, int first_batch_count, PacketBatch* &second) {
+    inline void cut(Packet* middle, int first_batch_count, PacketBatchLinkedList* &second) {
         if (middle == 0) {
             second = 0;
             click_chatter("BUG Warning : cutting a batch without a location to cut !");
@@ -540,7 +540,7 @@ public :
 
         int total_count = count();
 
-        second = reinterpret_cast<PacketBatch*>(middle->next());
+        second = reinterpret_cast<PacketBatchLinkedList*>(middle->next());
         middle->set_next(0);
 
         Packet* second_tail = tail();
@@ -559,7 +559,7 @@ public :
      * @param second Reference to set the head of the second batch
      * @param safe Set to true for optimization if you're sure there is enough packets to cut, and first_batch_count is not 0
      */
-    inline void split(int first_batch_count, PacketBatch* &second, const bool &safe = false) {
+    inline void split(int first_batch_count, PacketBatchLinkedList* &second, const bool &safe = false) {
         Packet* middle = first();
         if (unlikely(!safe)) {
             assert(first_batch_count > 0);
@@ -574,7 +574,7 @@ public :
 
         int total_count = count();
 
-        second = reinterpret_cast<PacketBatch*>(middle->next());
+        second = reinterpret_cast<PacketBatchLinkedList*>(middle->next());
         middle->set_next(0);
 
         Packet* second_tail = tail();
@@ -586,8 +586,8 @@ public :
         set_count(first_batch_count);
     }
 
-    inline PacketBatch* split(int first_batch_count) {
-                PacketBatch* second;
+    inline PacketBatchLinkedList* split(int first_batch_count) {
+                PacketBatchLinkedList* second;
                 split(first_batch_count,second, false);
                 return second;
     }
@@ -596,10 +596,10 @@ public :
      * Remove the first packet
      * @return the new batch without front. Do not use "this" afterwards!
      */
-    PacketBatch* pop_front() {
+    PacketBatchLinkedList* pop_front() {
         if (count() == 1)
             return 0;
-        PacketBatch* poped = PacketBatch::start_head(first()->next());
+        PacketBatchLinkedList* poped = PacketBatchLinkedList::start_head(first()->next());
         poped->set_count(count() -1 );
         poped->set_tail(tail());
         return poped;
@@ -614,8 +614,8 @@ public :
      * @pre The "prev" annotation of the first packet must point to the last packet of the linked list
      * @pre The tail->next() packet must be zero
      */
-    inline static PacketBatch* make_from_tailed_list(Packet* head, unsigned int size) {
-        PacketBatch* b = reinterpret_cast<PacketBatch*>(head);
+    inline static PacketBatchLinkedList* make_from_tailed_list(Packet* head, unsigned int size) {
+        PacketBatchLinkedList* b = reinterpret_cast<PacketBatchLinkedList*>(head);
         b->set_count(size);
         return b;
     }
@@ -627,8 +627,8 @@ public :
      * @param tail The last packet of the batch
      * @param size Number of packets in the linkedlist
      */
-    inline static PacketBatch* make_from_simple_list(Packet* head, Packet* tail, unsigned int size) {
-        PacketBatch* b = make_from_tailed_list(head,size);
+    inline static PacketBatchLinkedList* make_from_simple_list(Packet* head, Packet* tail, unsigned int size) {
+        PacketBatchLinkedList* b = make_from_tailed_list(head,size);
         b->set_tail(tail);
         tail->set_next(0);
         return b;
@@ -639,7 +639,7 @@ public :
      *
      * @param head The first packet of the batch
      */
-    inline static PacketBatch* make_from_simple_list(Packet* head) {
+    inline static PacketBatchLinkedList* make_from_simple_list(Packet* head) {
         int size = 1;
         Packet* next = head->next();
         Packet* tail = head;
@@ -648,7 +648,7 @@ public :
             tail = next;
             next = tail->next();
         }
-        PacketBatch* b = make_from_tailed_list(head,size);
+        PacketBatchLinkedList* b = make_from_tailed_list(head,size);
         b->set_tail(tail);
         return b;
     }
@@ -658,9 +658,9 @@ public :
     /**
      * Make a batch composed of a single packet
      */
-    inline static PacketBatch* make_from_packet(Packet* p) {
+    inline static PacketBatchLinkedList* make_from_packet(Packet* p) {
         if (!p) return 0;
-        PacketBatch* b = reinterpret_cast<PacketBatch*>(p);
+        PacketBatchLinkedList* b = reinterpret_cast<PacketBatchLinkedList*>(p);
         b->set_count(1);
         b->set_tail(p);
         p->set_next(0);
@@ -668,7 +668,7 @@ public :
     }
 
 #if !CLICK_LINUXMODULE
-    static PacketBatch *make_batch(unsigned char *data, uint16_t count, uint16_t *length,
+    static PacketBatchLinkedList *make_batch(unsigned char *data, uint16_t count, uint16_t *length,
                     Packet::buffer_destructor_type destructor,
                                     void* argument = (void*) 0, const bool clear=true) CLICK_WARN_UNUSED_RESULT;
 #endif
@@ -695,8 +695,8 @@ public :
     /**
      * Clone the batch
      */
-    inline PacketBatch* clone_batch() {
-        PacketBatch* head = 0;
+    inline PacketBatchLinkedList* clone_batch() {
+        PacketBatchLinkedList* head = 0;
         Packet* last = 0;
         FOR_EACH_PACKET(this, p) {
             Packet* q = p->clone();
@@ -733,7 +733,7 @@ public :
 /**
  * Recycle a whole batch
  */
-inline void PacketBatch::kill() {
+inline void PacketBatchLinkedList::kill() {
     FOR_EACH_PACKET_SAFE(this,p) {
         p->kill();
     }
@@ -807,11 +807,11 @@ inline void PacketBatch::kill() {
 #define BATCH_RECYCLE_END() \
 	if (last_packet) {\
 		last_packet->set_next(0);\
-		PacketBatch::make_from_simple_list(head_packet,last_packet,n_packet)->recycle_batch(false);\
+		PacketBatchLinkedList::make_from_simple_list(head_packet,last_packet,n_packet)->recycle_batch(false);\
 	}\
 	if (last_data) {\
 		last_data->set_next(0);\
-		PacketBatch::make_from_simple_list(head_data,last_data,n_data)->recycle_batch(true);\
+		PacketBatchLinkedList::make_from_simple_list(head_data,last_data,n_data)->recycle_batch(true);\
 	}
 #else
 #define BATCH_RECYCLE_START() {}
@@ -835,14 +835,14 @@ inline void PacketBatch::kill() {
  * Set of functions to efficiently create a batch.
  */
 #define BATCH_CREATE_INIT(batch) \
-        PacketBatch* batch = 0; \
+        PacketBatchLinkedList* batch = 0; \
         int batch ## count = 0; \
         Packet* batch ## last = 0;
 #define BATCH_CREATE_APPEND(batch,p) \
         if (batch) { \
             batch ## last->set_next(p); \
         } else {\
-            batch = PacketBatch::start_head(p); \
+            batch = PacketBatchLinkedList::start_head(p); \
         }\
         batch ## last = p;\
         batch ## count++;
@@ -858,7 +858,7 @@ typedef Packet::PacketType PacketType;
  *
  * @precond No packet are shared
  */
-inline void PacketBatch::recycle_batch(bool is_data) {
+inline void PacketBatchLinkedList::recycle_batch(bool is_data) {
     if (is_data) {
         WritablePacket::recycle_data_batch((WritablePacket*)this->first(),tail(),count());
     } else {

@@ -10,33 +10,37 @@ CLICK_DECLS
  * Iterate over all packets of a batch. The batch cannot be modified during
  *   iteration. Use _SAFE version if you want to modify it on the fly.
  */
-#define FOR_EACH_PACKET_LL(first,p) for(Packet* p = first;p != 0;p=p->next())
+ //OBSOLETE, REWRITE FOR VECTOR
+#define FOR_EACH_PACKET_VEC(first,p) for(Packet* p = first;p != 0;p=p->next())
 
 /**
  * Iterate over all packets of a batch. The batch cannot be modified during
  *   iteration. Use _SAFE version if you want to modify it on the fly.
  */
-#define FOR_EACH_PACKET(batch,p) FOR_EACH_PACKET_LL(batch->first(),p)
+//OBSOLETE, REWRITE FOR VECTOR
+//#define FOR_EACH_PACKET(batch,p) FOR_EACH_PACKET_VEC(batch->first(),p)
 
 /**
  * Iterate over all packets of a batch. The current packet can be modified
  *  during iteration as the "next" pointer is read before going in the core of
  *  the loop.
  */
-#define FOR_EACH_PACKET_LL_SAFE(first,p) \
+//OBSOLETE, REWRITE FOR VECTOR
+#define FOR_EACH_PACKET_SAFE_VEC(first,p) \
                 Packet* fep_next = ((first != 0)? first->next() : 0 );\
                 Packet* p = first;\
                 for (;p != 0;p=fep_next,fep_next=(p==0?0:p->next()))
 
 
-#define FOR_EACH_PACKET_SAFE(batch,p) FOR_EACH_PACKET_LL_SAFE(batch->first(),p)
+//#define FOR_EACH_PACKET_SAFE(batch,p) FOR_EACH_PACKET_VEC_SAFE(batch->first(),p)
 
 /**
  * Execute a function on each packets of a batch. The function may return
  * another packet to replace the current one. This version cannot drop !
  * Use _DROPPABLE version if the function could return null.
  */
-#define EXECUTE_FOR_EACH_PACKET(fnt,batch) \
+//OBSOLETE, REWRITE FOR VECTOR
+#define EXECUTE_FOR_EACH_PACKET_VEC(fnt,batch) \
                 Packet* efep_next = ((batch != 0)? batch->first()->next() : 0 );\
                 Packet* p = batch->first();\
                 Packet* last = 0;\
@@ -46,7 +50,7 @@ CLICK_DECLS
                         if (last) {\
                             last->set_next(q);\
                         } else {\
-                            batch = reinterpret_cast<PacketBatch*>(q);\
+                            batch = reinterpret_cast<PacketBatchVector*>(q);\
                         }\
                         q->set_next(efep_next);\
                     }\
@@ -60,7 +64,8 @@ CLICK_DECLS
  * with the whole batch in argument, the packet causing the stop, and the next
  * reference. This function does not kill any packet by itself.
  */
-#define EXECUTE_FOR_EACH_PACKET_UNTIL_DO(fnt,batch,on_stop) \
+//OBSOLETE, REWRITE FOR VECTOR
+#define EXECUTE_FOR_EACH_PACKET_UNTIL_DO_VEC(fnt,batch,on_stop) \
                 Packet* efep_next = ((batch != 0)? batch->first()->next() : 0 );\
                 Packet* p = batch->first();\
                 Packet* last = 0;\
@@ -72,7 +77,7 @@ CLICK_DECLS
                         if (last) {\
                             last->set_next(q);\
                         } else {\
-                            batch = reinterpret_cast<PacketBatch*>(q);\
+                            batch = reinterpret_cast<PacketBatchVector*>(q);\
                             batch->set_count(count);\
                         }\
                         q->set_next(efep_next);\
@@ -85,15 +90,19 @@ CLICK_DECLS
                 }
 
 //Variant that will drop the whole batch when fnt return false
-#define EXECUTE_FOR_EACH_PACKET_UNTIL(fnt,batch) \
-    EXECUTE_FOR_EACH_PACKET_UNTIL_DO(fnt, batch, [](PacketBatch*& batch, Packet*, Packet*){batch->kill();batch = 0;})
+//OBSOLETE, REWRITE FOR VECTOR
+
+#define EXECUTE_FOR_EACH_PACKET_UNTIL_VEC(fnt,batch) \
+    EXECUTE_FOR_EACH_PACKET_UNTIL_DO_VEC(fnt, batch, [](PacketBatchVector*& batch, Packet*, Packet*){batch->kill();batch = 0;})
 
 /*
  * Variant that will drop the remaining packets, but return the batch up to the drop (the packet for which fnt returned true is included.
  * A usage example is a NAT, that translate all packets up to when the state is destroyed. But sometimes there could be unordered packets still coming after the last ACK, or duplicate FIN.
  */
-#define EXECUTE_FOR_EACH_PACKET_UNTIL_DROP(fnt,batch) \
-    EXECUTE_FOR_EACH_PACKET_UNTIL_DO(fnt, batch, [](PacketBatch*& batch, Packet* dropped, Packet* next){ if (!next) return; PacketBatch* remain = PacketBatch::make_from_simple_list(next);batch->set_count(batch->count() - remain->count()); batch->set_tail(dropped); dropped->set_next(0); remain->kill(); })
+//OBSOLETE, REWRITE FOR VECTOR
+
+#define EXECUTE_FOR_EACH_PACKET_UNTIL_DROP_VEC(fnt,batch) \
+    EXECUTE_FOR_EACH_PACKET_UNTIL_DO_VEC(fnt, batch, [](PacketBatchVector*& batch, Packet* dropped, Packet* next){ if (!next) return; PacketBatchVector* remain = PacketBatchVector::make_from_simple_list(next);batch->set_count(batch->count() - remain->count()); batch->set_tail(dropped); dropped->set_next(0); remain->kill(); })
 
 /**
  * Execute a function on each packet of a batch.
@@ -108,7 +117,7 @@ CLICK_DECLS
  *
  * Example: EXECUTE_FOR_EACH_PACKET_DROPPABLE([this](Packet* p){return p->push(_nbytes);},batch,[](Packet* p){})
  */
-#define EXECUTE_FOR_EACH_PACKET_DROPPABLE(fnt,batch,on_drop) {\
+#define EXECUTE_FOR_EACH_PACKET_DROPPABLE_VEC(fnt,batch,on_drop) {\
                 Packet* efepd_next = ((batch != 0)? batch->first()->next() : 0 );\
                 Packet* p = batch->first();\
                 Packet* last = 0;\
@@ -120,7 +129,7 @@ CLICK_DECLS
                 if (last) {\
                     last->set_next(efepd_next);\
                 } else {\
-                    batch = PacketBatch::start_head(efepd_next);\
+                    batch = PacketBatchVector::start_head(efepd_next);\
                 }\
                         count--;\
                         continue;\
@@ -128,7 +137,7 @@ CLICK_DECLS
                         if (last) {\
                             last->set_next(q);\
                         } else {\
-                            batch = reinterpret_cast<PacketBatch*>(q);\
+                            batch = reinterpret_cast<PacketBatchVector*>(q);\
                         }\
                         q->set_next(efepd_next);\
                     }\
@@ -145,16 +154,16 @@ CLICK_DECLS
  * Same as EXECUTE_FOR_EACH_PACKET_DROPPABLE but build a list of dropped packet
  * instead of calling a function
  */
-#define EXECUTE_FOR_EACH_PACKET_DROP_LIST(fnt,batch,drop_list) \
-        PacketBatch* drop_list = 0;\
+#define EXECUTE_FOR_EACH_PACKET_DROP_LIST_VEC(fnt,batch,drop_list) \
+        PacketBatchVector* drop_list = 0;\
         auto on_drop = [&drop_list](Packet* p) {\
             if (drop_list == 0) {\
-                drop_list = PacketBatch::make_from_packet(p);\
+                drop_list = PacketBatchVector::make_from_packet(p);\
             } else {\
                 drop_list->append_packet(p);\
             }\
         };\
-        EXECUTE_FOR_EACH_PACKET_DROPPABLE(fnt,batch,on_drop);
+        EXECUTE_FOR_EACH_PACKET_DROPPABLE_VEC(fnt,batch,on_drop);
 
 
 /**
@@ -167,7 +176,7 @@ CLICK_DECLS
  * as null after flushing.
  * On_flush is always called on the batch after the last packet.
  */
-#define EXECUTE_FOR_EACH_PACKET_SPLITTABLE(fnt,batch,on_drop,on_flush) {\
+#define EXECUTE_FOR_EACH_PACKET_SPLITTABLE_VEC(fnt,batch,on_drop,on_flush) {\
             Packet* next = ((batch != 0)? batch->first()->next() : 0 );\
             Packet* p = batch->first();\
             Packet* last = 0;\
@@ -183,13 +192,13 @@ CLICK_DECLS
                     on_drop(p);\
                     count = 0;\
                     last = 0;\
-                    batch = PacketBatch::start_head(next);\
+                    batch = PacketBatchVector::start_head(next);\
                     continue;\
                 } else if (q != p) {\
                     if (last) {\
                         last->set_next(q);\
                     } else {\
-                        batch = reinterpret_cast<PacketBatch*>(q);\
+                        batch = reinterpret_cast<PacketBatchVector*>(q);\
                     }\
                     q->set_next(next);\
                 }\
@@ -213,7 +222,7 @@ CLICK_DECLS
  * }
  * EXECUTE_FOR_EACH_PACKET_ADD( fnt, batch );
  */
-#define EXECUTE_FOR_EACH_PACKET_ADD(fnt,batch) {\
+#define EXECUTE_FOR_EACH_PACKET_ADD_VEC(fnt,batch) {\
             Packet* next = ((batch != 0)? batch->first()->next() : 0 );\
             Packet* p = batch->first();\
             Packet* last = 0;\
@@ -223,7 +232,7 @@ CLICK_DECLS
                     if (last) { \
                         last->set_next(q); \
                     } else { \
-                        batch = reinterpret_cast<PacketBatch*>(q);\
+                        batch = reinterpret_cast<PacketBatchVector*>(q);\
                     }\
                     last = q;\
                     count++;\
@@ -256,30 +265,30 @@ CLICK_DECLS
  *  classification is finished, usually you want that to be
  *  checked_output_push_batch.
  */
-#define CLASSIFY_EACH_PACKET(nbatches,fnt,cep_batch,on_finish)\
+#define CLASSIFY_EACH_PACKET_VEC(nbatches,fnt,cep_batch,on_finish)\
     {\
-        PacketBatch* out[(nbatches)];\
-        bzero(out,sizeof(PacketBatch*)*(nbatches));\
-        PacketBatch* cep_next = ((cep_batch != 0)? reinterpret_cast<PacketBatch*>(cep_batch->first()->next()) : 0 );\
+        PacketBatchVector* out[(nbatches)];\
+        bzero(out,sizeof(PacketBatchVector*)*(nbatches));\
+        PacketBatchVector* cep_next = ((cep_batch != 0)? reinterpret_cast<PacketBatchVector*>(cep_batch->first()->next()) : 0 );\
         Packet* p = cep_batch->first();\
         Packet* last = 0;\
         int last_o = -1;\
         int passed = 0;\
-        for (;p != 0;p=cep_next->first(),cep_next=(p==0?0:reinterpret_cast<PacketBatch*>(p->next()))) {\
+        for (;p != 0;p=cep_next->first(),cep_next=(p==0?0:reinterpret_cast<PacketBatchVector*>(p->next()))) {\
             int o = (fnt(p));\
             if (o < 0 || o>=(int)(nbatches)) o = (nbatches - 1);\
             if (o == last_o) {\
                 passed ++;\
             } else {\
                 if (last == 0) {\
-                    out[o] = reinterpret_cast<PacketBatch*>(p);\
-                    reinterpret_cast<PacketBatch*>(p)->set_count(1);\
-                    reinterpret_cast<PacketBatch*>(p)->set_tail(p);\
+                    out[o] = reinterpret_cast<PacketBatchVector*>(p);\
+                    reinterpret_cast<PacketBatchVector*>(p)->set_count(1);\
+                    reinterpret_cast<PacketBatchVector*>(p)->set_tail(p);\
                 } else {\
                     out[last_o]->set_tail(last);\
                     out[last_o]->set_count(out[last_o]->count() + passed);\
                     if (!out[o]) {\
-                        out[o] = reinterpret_cast<PacketBatch*>(p);\
+                        out[o] = reinterpret_cast<PacketBatchVector*>(p);\
                         out[o]->set_count(1);\
                         out[o]->set_tail(p);\
                     } else {\
@@ -311,16 +320,16 @@ CLICK_DECLS
  */
 //! initialize properly packetbatches ?
 //! what to do with reinterpret_cast
-#define CLASSIFY_EACH_PACKET_IGNORE(nbatches,fnt,cep_batch,on_finish)\
+#define CLASSIFY_EACH_PACKET_IGNORE_VEC(nbatches,fnt,cep_batch,on_finish)\
     {\
-        PacketBatch* out[(nbatches)];\
-        bzero(out,sizeof(PacketBatch*)*(nbatches));\
-        PacketBatch* cep_next = ((cep_batch != 0)? reinterpret_cast<PacketBatch*>(cep_batch->first()->next()) : 0 );\
+        PacketBatchVector* out[(nbatches)];\
+        bzero(out,sizeof(PacketBatchVector*)*(nbatches));\
+        PacketBatchVector* cep_next = ((cep_batch != 0)? reinterpret_cast<PacketBatchVector*>(cep_batch->first()->next()) : 0 );\
         Packet* p = cep_batch->first();\
         Packet* last = 0;\
         int last_o = -1;\
         int passed = 0;\
-        for (;p != 0;p=cep_next->first(),cep_next=(p==0?0:reinterpret_cast<PacketBatch*>(p->next()))) {\
+        for (;p != 0;p=cep_next->first(),cep_next=(p==0?0:reinterpret_cast<PacketBatchVector*>(p->next()))) {\
             int o = (fnt(p));\
             if (o>=(nbatches)) o = (nbatches - 1);\
             if (o == last_o) {\
@@ -328,7 +337,7 @@ CLICK_DECLS
             } else {\
                 if (last == 0) {\
                     if (o == -1) continue;\
-                    out[o] = reinterpret_cast<PacketBatch*>(p);\
+                    out[o] = reinterpret_cast<PacketBatchVector*>(p);\
                     out[o]->set_count(1);\
                     out[o]->set_tail(p);\
                 } else {\
@@ -338,7 +347,7 @@ CLICK_DECLS
                     }\
                     if (o != -1) {\
                         if (!out[o]) {\
-                            out[o] = reinterpret_cast<PacketBatch*>(p);\
+                            out[o] = reinterpret_cast<PacketBatchVector*>(p);\
                             out[o]->set_count(1);\
                             out[o]->set_tail(p);\
                         } else {\
@@ -369,7 +378,7 @@ CLICK_DECLS
 
 /**
  * Create a batch by calling multiple times (up to max) a given function and
- *   linking them together in respect to the PacketBatch semantic.
+ *   linking them together in respect to the PacketBatchVector semantic.
  *
  * In most case this function should not be used. Because if you get packets
  * per packets it means you don't get them upstream as a batch. You may prefer
@@ -380,8 +389,8 @@ CLICK_DECLS
  * instead of pull_batch. However this is fine in a source element where
  * anyway the batch must be created packet per packet.
  */
-#define MAKE_BATCH(fnt,head,max) {\
-        head = PacketBatch::start_head(fnt);\
+#define MAKE_BATCH_VEC(fnt,head,max) {\
+        head = PacketBatchVector::start_head(fnt);\
         if (head != 0) {\
             Packet* last = head->first();\
             unsigned int count = 1;\
@@ -411,7 +420,7 @@ CLICK_DECLS
  *
  * Batches must not mix cloned and unique packets. Use cut to split batches and have part of them cloned.
  */
-class PacketBatch {
+class PacketBatchVector {
 
 //Consider a batch size bigger as bogus (prevent infinite loop on bad pointer manipulation)
 #define MAX_BATCH_SIZE 8192
@@ -420,7 +429,7 @@ private:
     std::vector<Packet*> packets;
 
 public :
-    PacketBatch(void): packets(std::vector<Packet*>()) {}
+    PacketBatchVector(void): packets(std::vector<Packet*>()) {}
     /*
      * Return the first packet of the batch
      */
@@ -432,7 +441,7 @@ public :
      * Set the tail of the batch
      */
     inline void set_tail(Packet* p) {
-        packets.back() = p;
+        //not needed
     }
 
     /*
@@ -455,9 +464,9 @@ public :
     }
 
     /*
-     * Append a proper PacketBatch to this batch.
+     * Append a proper PacketBatchVector to this batch.
      */
-    inline void append_batch(PacketBatch* head) {
+    inline void append_batch(PacketBatchVector* head) {
         packets.insert(packets.end(), head->packets.begin(), head->packets.end());
         set_tail(head->tail());
         set_count(count() + head->count());
@@ -489,8 +498,8 @@ public :
      *  until you call make_tail().
      * If the Packet is null, returns no batch.
      */
-    inline static PacketBatch* start_head(Packet* p) {
-        PacketBatch* b = new PacketBatch();
+    inline static PacketBatchVector* start_head(Packet* p) {
+        PacketBatchVector* b = new PacketBatchVector();
         b->append_packet(p);
         return b;
     }
@@ -505,7 +514,7 @@ public :
      *
      * This will set up the batch with the last packet. set_next() have to be called for each packet from the head to the @a last packet !
      */
-    inline PacketBatch* make_tail(Packet* last, unsigned int count) {
+    inline PacketBatchVector* make_tail(Packet* last, unsigned int count) {
         set_count(count);
         if (last == 0) {
             if (count != 1)
@@ -533,7 +542,7 @@ public :
      * @param first_batch_count The number of packets in the first batch
      * @param second Reference to set the head of the second batch
      */
-    inline void cut(Packet* middle, int first_batch_count, PacketBatch* &second) {
+    inline void cut(Packet* middle, int first_batch_count, PacketBatchVector* &second) {
         if (middle == 0) {
             second = 0;
             click_chatter("BUG Warning : cutting a batch without a location to cut !");
@@ -545,7 +554,7 @@ public :
             return;
         }
 
-        second = new PacketBatch();
+        second = new PacketBatchVector();
         second->packets = std::vector<Packet*>(packets.begin() + first_batch_count, packets.end());
 
         Packet* second_tail = tail();
@@ -563,7 +572,7 @@ public :
      * @param second Reference to set the head of the second batch
      * @param safe Set to true for optimization if you're sure there is enough packets to cut, and first_batch_count is not 0
      */
-    inline void split(int first_batch_count, PacketBatch* &second, const bool &safe = false) {
+    inline void split(int first_batch_count, PacketBatchVector* &second, const bool &safe = false) {
         Packet* middle = first();
         if (unlikely(!safe)) {
             assert(first_batch_count > 0);
@@ -576,7 +585,7 @@ public :
             }
         }
 
-        second = new PacketBatch();
+        second = new PacketBatchVector();
         second->packets = std::vector<Packet*>(packets.begin() + first_batch_count, packets.end());
 
         Packet* second_tail = tail();
@@ -589,8 +598,8 @@ public :
         packets.erase(packets.begin() + first_batch_count, packets.end());
     }
 
-    inline PacketBatch* split(int first_batch_count) {
-                PacketBatch* second;
+    inline PacketBatchVector* split(int first_batch_count) {
+                PacketBatchVector* second;
                 split(first_batch_count,second, false);
                 return second;
     }
@@ -599,10 +608,10 @@ public :
      * Remove the first packet
      * @return the new batch without front. Do not use "this" afterwards!
      */
-    PacketBatch* pop_front() {
+    PacketBatchVector* pop_front() {
         if (count() == 1)
             return 0;
-        PacketBatch* b = new PacketBatch();
+        PacketBatchVector* b = new PacketBatchVector();
         b->packets = std::vector<Packet*>(packets.begin() + 1, packets.end());
         delete this;
         return b;
@@ -617,8 +626,8 @@ public :
      * @pre The "prev" annotation of the first packet must point to the last packet of the linked list
      * @pre The tail->next() packet must be zero
      */
-    inline static PacketBatch* make_from_tailed_list(Packet* head, unsigned int size) {
-        PacketBatch* b = new PacketBatch();
+    inline static PacketBatchVector* make_from_tailed_list(Packet* head, unsigned int size) {
+        PacketBatchVector* b = new PacketBatchVector();
         Packet* current = head;
         for (unsigned int i = 1; i < size; i++) {
             b->append_packet(current);
@@ -634,8 +643,8 @@ public :
      * @param tail The last packet of the batch
      * @param size Number of packets in the linkedlist
      */
-    inline static PacketBatch* make_from_simple_list(Packet* head, Packet* tail, unsigned int size) {
-        PacketBatch* b = make_from_tailed_list(head,size);
+    inline static PacketBatchVector* make_from_simple_list(Packet* head, Packet* tail, unsigned int size) {
+        PacketBatchVector* b = make_from_tailed_list(head,size);
         b->set_tail(tail);
         return b;
     }
@@ -645,7 +654,7 @@ public :
      *
      * @param head The first packet of the batch
      */
-    inline static PacketBatch* make_from_simple_list(Packet* head) {
+    inline static PacketBatchVector* make_from_simple_list(Packet* head) {
         int size = 1;
         Packet* next = head->next();
         Packet* tail = head;
@@ -654,7 +663,7 @@ public :
             tail = next;
             next = tail->next();
         }
-        PacketBatch* b = make_from_tailed_list(head,size);
+        PacketBatchVector* b = make_from_tailed_list(head,size);
         b->set_tail(tail);
         return b;
     }
@@ -664,15 +673,15 @@ public :
     /**
      * Make a batch composed of a single packet
      */
-    inline static PacketBatch* make_from_packet(Packet* p) {
+    inline static PacketBatchVector* make_from_packet(Packet* p) {
         if (!p) return 0;
-        PacketBatch* b = new PacketBatch();
+        PacketBatchVector* b = new PacketBatchVector();
         b->set_tail(p);
         return b;
     }
 
 #if !CLICK_LINUXMODULE
-    static PacketBatch *make_batch(unsigned char *data, uint16_t count, uint16_t *length,
+    static PacketBatchVector *make_batch(unsigned char *data, uint16_t count, uint16_t *length,
                     Packet::buffer_destructor_type destructor,
                                     void* argument = (void*) 0, const bool clear=true) CLICK_WARN_UNUSED_RESULT;
 #endif
@@ -699,10 +708,10 @@ public :
     /**
      * Clone the batch
      */
-    inline PacketBatch* clone_batch() {
-        PacketBatch* head = 0;
+    inline PacketBatchVector* clone_batch() {
+        PacketBatchVector* head = 0;
         Packet* last = 0;
-        FOR_EACH_PACKET(this, p) {
+        FOR_EACH_PACKET_VEC(first(), p) {
             Packet* q = p->clone();
             if (last == 0) {
                 head = start_head(q);
@@ -737,8 +746,8 @@ public :
 /**
  * Recycle a whole batch
  */
-inline void PacketBatch::kill() {
-    FOR_EACH_PACKET_SAFE(this,p) {
+inline void PacketBatchVector::kill() {
+    FOR_EACH_PACKET_SAFE_VEC(first(),p) {
         p->kill();
     }
     delete this;
@@ -812,11 +821,11 @@ inline void PacketBatch::kill() {
 #define BATCH_RECYCLE_END() \
 	if (last_packet) {\
 		last_packet->set_next(0);\
-		PacketBatch::make_from_simple_list(head_packet,last_packet,n_packet)->recycle_batch(false);\
+		PacketBatchVector::make_from_simple_list(head_packet,last_packet,n_packet)->recycle_batch(false);\
 	}\
 	if (last_data) {\
 		last_data->set_next(0);\
-		PacketBatch::make_from_simple_list(head_data,last_data,n_data)->recycle_batch(true);\
+		PacketBatchVector::make_from_simple_list(head_data,last_data,n_data)->recycle_batch(true);\
 	}
 #else
 #define BATCH_RECYCLE_START() {}
@@ -840,14 +849,14 @@ inline void PacketBatch::kill() {
  * Set of functions to efficiently create a batch.
  */
 #define BATCH_CREATE_INIT(batch) \
-        PacketBatch* batch = 0; \
+        PacketBatchVector* batch = 0; \
         int batch ## count = 0; \
         Packet* batch ## last = 0;
 #define BATCH_CREATE_APPEND(batch,p) \
         if (batch) { \
             batch ## last->set_next(p); \
         } else {\
-            batch = PacketBatch::start_head(p); \
+            batch = PacketBatchVector::start_head(p); \
         }\
         batch ## last = p;\
         batch ## count++;
@@ -863,7 +872,7 @@ typedef Packet::PacketType PacketType;
  *
  * @precond No packet are shared
  */
-inline void PacketBatch::recycle_batch(bool is_data) {
+inline void PacketBatchVector::recycle_batch(bool is_data) {
     if (is_data) {
         WritablePacket::recycle_data_batch((WritablePacket*)this->first(),tail(),count());
     } else {

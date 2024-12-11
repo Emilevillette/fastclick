@@ -5,12 +5,7 @@
 #include <click/vector.hh>
 #include <click/string.hh>
 #include <click/packet.hh>
-
-#ifdef HAVE_VECTOR
-    #include <click/packetbatchvector.hh>
-#else
-    #include <click/packetbatchlinkedlist.hh>
-#endif
+#include <click/packetbatch.hh>
 
 #include <click/handler.hh>
 #include <click/sync.hh>
