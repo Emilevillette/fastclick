@@ -43,6 +43,7 @@ void PacketBatchVector::fast_kill() {
         BATCH_RECYCLE_PACKET(p);
     }
     BATCH_RECYCLE_END();
+    delete this;
 }
 
 /**
@@ -55,6 +56,7 @@ void PacketBatchVector::fast_kill_nonatomic() {
         BATCH_RECYCLE_PACKET_NONATOMIC(p);
     }
     BATCH_RECYCLE_END();
+    delete this;
 }
 # endif
 
