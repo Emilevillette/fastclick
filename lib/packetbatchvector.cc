@@ -38,7 +38,7 @@ CLICK_DECLS
  */
 void PacketBatchVector::fast_kill() {
     BATCH_RECYCLE_START();
-    FOR_EACH_PACKET_SAFE(this,up) {
+    FOR_EACH_PACKET_SAFE_VEC(first(),up) {
         WritablePacket* p = static_cast<WritablePacket*>(up);
         BATCH_RECYCLE_PACKET(p);
     }
@@ -50,7 +50,7 @@ void PacketBatchVector::fast_kill() {
  */
 void PacketBatchVector::fast_kill_nonatomic() {
     BATCH_RECYCLE_START();
-    FOR_EACH_PACKET_SAFE(this,up) {
+    FOR_EACH_PACKET_SAFE_VEC(first(),up) {
         WritablePacket* p = static_cast<WritablePacket*>(up);
         BATCH_RECYCLE_PACKET_NONATOMIC(p);
     }
