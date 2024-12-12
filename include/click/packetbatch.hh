@@ -6,7 +6,6 @@
 
 #if HAVE_VECTOR
     #include <click/packetbatchvector.hh>
-    typedef PacketBatchVector PacketBatch;
 
     #define FOR_EACH_PACKET(batch,p)            FOR_EACH_PACKET_VEC(batch->first(),p)
     #define FOR_EACH_PACKET_SAFE(batch,p)       FOR_EACH_PACKET_SAFE_VEC(batch->first(),p)
@@ -24,7 +23,6 @@
 
 #else
     #include <click/packetbatchlinkedlist.hh>
-    typedef PacketBatchLinkedList PacketBatch;
 
     #define FOR_EACH_PACKET(batch,p)            FOR_EACH_PACKET_LL(batch->first(),p)
     #define FOR_EACH_PACKET_SAFE(batch,p)       FOR_EACH_PACKET_SAFE_LL(batch->first(),p)

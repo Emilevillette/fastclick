@@ -52,6 +52,12 @@ class IP6Address;
 class WritablePacket;
 class PacketBatchVector;
 class PacketBatchLinkedList;
+#if HAVE_VECTOR
+    typedef PacketBatchVector PacketBatch;
+#else
+    typedef PacketBatchLinkedList PacketBatch;
+#endif
+
 #if HAVE_DPDK
 class FromDPDKDevice;
 class DPDKDevice;
