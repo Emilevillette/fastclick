@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <click/packet.hh>
+#include <click/memorypool.hh>
 CLICK_DECLS
 
 //TODO: CLEANUP
@@ -431,9 +432,29 @@ class PacketBatchVector {
 
 private:
     std::vector<Packet*> packets;
+    MemoryPool<PacketBatchVector>* pool;
+
+    /**
+     * @brief Allocate a new PacketBatchVector from a memory pool
+     *
+     * @param c Number of packets in the batch
+     *
+     * @return a pointer to a PacketBatchVector allocated with a MemoryPool
+     */
+    inline static PacketBatchVector * make_packet_batch_from_pool(unsigned int c) {
+        MemoryPool<PacketBatchVector>* mem_pool = new MemoryPool<PacketBatchVector>(1);
+        PacketBatchVector* b = mem_pool->getMemory();
+        b->packets = std::vector<Packet*>(c);
+        b->pool = mem_pool;
+        return b;
+    }
 
 public :
     PacketBatchVector(void): packets(std::vector<Packet*>()) {}
+
+    ~PacketBatchVector() {
+        delete pool;
+    }
     /*
      * Return the first packet of the batch
      */
@@ -446,6 +467,7 @@ public :
      */
     inline void set_tail(Packet* p) {
         //not needed
+        (void)p;
     }
 
     /*
@@ -503,7 +525,7 @@ public :
      * If the Packet is null, returns no batch.
      */
     inline static PacketBatchVector* start_head(Packet* p) {
-        PacketBatchVector* b = new PacketBatchVector();
+        PacketBatchVector* b = make_packet_batch_from_pool(1);
         b->append_packet(p);
         return b;
     }
@@ -537,6 +559,7 @@ public :
      */
     inline void set_count(unsigned int c) {
         //SET_BATCH_COUNT_ANNO(first(),c); // SEGFAULT ??
+        (void)c;
     }
 
     /**
@@ -558,7 +581,7 @@ public :
             return;
         }
 
-        second = new PacketBatchVector();
+        second = make_packet_batch_from_pool(count() - first_batch_count);
         second->packets = std::vector<Packet*>(packets.begin() + first_batch_count, packets.end());
 
         Packet* second_tail = tail();
@@ -589,7 +612,7 @@ public :
             }
         }
 
-        second = new PacketBatchVector();
+        second = make_packet_batch_from_pool(count() - first_batch_count);
         second->packets = std::vector<Packet*>(packets.begin() + first_batch_count, packets.end());
 
         Packet* second_tail = tail();
@@ -615,7 +638,8 @@ public :
     PacketBatchVector* pop_front() {
         if (count() == 1)
             return 0;
-        PacketBatchVector* b = new PacketBatchVector();
+
+        PacketBatchVector* b = make_packet_batch_from_pool(count() - 1);
         b->packets = std::vector<Packet*>(packets.begin() + 1, packets.end());
         delete this;
         return b;
@@ -631,7 +655,7 @@ public :
      * @pre The tail->next() packet must be zero
      */
     inline static PacketBatchVector* make_from_tailed_list(Packet* head, unsigned int size) {
-        PacketBatchVector* b = new PacketBatchVector();
+        PacketBatchVector* b = make_packet_batch_from_pool(size);
         Packet* current = head;
         for (unsigned int i = 1; i < size; i++) {
             b->append_packet(current);
@@ -679,7 +703,8 @@ public :
      */
     inline static PacketBatchVector* make_from_packet(Packet* p) {
         if (!p) return 0;
-        PacketBatchVector* b = new PacketBatchVector();
+        PacketBatchVector* b = make_packet_batch_from_pool(1);
+        b->append_packet(p);
         b->set_tail(p);
         return b;
     }
