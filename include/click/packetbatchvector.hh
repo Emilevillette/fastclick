@@ -13,8 +13,9 @@ CLICK_DECLS
  * Iterate over all packets of a batch. The batch cannot be modified during
  *   iteration. Use _SAFE version if you want to modify it on the fly.
  */
- //OBSOLETE, REWRITE FOR VECTOR
-#define FOR_EACH_PACKET_VEC(first,p) for(Packet* p = first;p != 0;p=p->next())
+
+#define FOR_EACH_PACKET_VEC(batch,p) Packet *p = batch->first();\
+                for(auto it = ((PacketBatchVector*)batch)->vector_cbegin();it != ((PacketBatchVector*)batch)->vector_cend(); ++it, p = *it)
 
 /**
  * Iterate over all packets of a batch. The batch cannot be modified during
@@ -28,11 +29,9 @@ CLICK_DECLS
  *  during iteration as the "next" pointer is read before going in the core of
  *  the loop.
  */
-//OBSOLETE, REWRITE FOR VECTOR
-#define FOR_EACH_PACKET_SAFE_VEC(first,p) \
-                Packet* fep_next = ((first != 0)? first->next() : 0 );\
-                Packet* p = first;\
-                for (;p != 0;p=fep_next,fep_next=(p==0?0:p->next()))
+#define FOR_EACH_PACKET_SAFE_VEC(batch,p) \
+                Packet *p = batch->first();      \
+                for(auto it = ((PacketBatchVector*)batch)->vector_begin(); it != ((PacketBatchVector*)batch)->vector_end(); ++it, p = *it)
 
 // Alias for the old name
 #define FOR_EACH_PACKET_VEC_SAFE FOR_EACH_PACKET_SAFE_VEC
@@ -101,7 +100,7 @@ CLICK_DECLS
     EXECUTE_FOR_EACH_PACKET_UNTIL_DO_VEC(fnt, batch, [](PacketBatchVector*& batch, Packet*, Packet*){batch->kill();batch = 0;})
 
 /*
- * Variant that will drop the remaining packets, but return the batch up to the drop (the packet for which fnt returned true is included.
+ * Variant that will drop the remaining packets, but return the batch up to the drop (the packet for which fnt returned true is included).
  * A usage example is a NAT, that translate all packets up to when the state is destroyed. But sometimes there could be unordered packets still coming after the last ACK, or duplicate FIN.
  */
 //OBSOLETE, REWRITE FOR VECTOR
@@ -455,6 +454,39 @@ public :
     ~PacketBatchVector() {
         delete pool;
     }
+
+    /**
+     * @brief Returns an iterator on the beginning of the packet vector (no modification allowed)
+     * @return the iterator
+     */
+    inline std::vector<Packet*>::const_iterator vector_cbegin() const {
+        return packets.cbegin();
+    }
+
+    /**
+     * @brief Returns an iterator on the end of the packet vector (no modification allowed)
+     * @return the iterator
+     */
+    inline std::vector<Packet*>::const_iterator vector_cend() const {
+        return packets.cend();
+    }
+
+    /**
+     * @brief Returns an iterator on the beginning beginning of the packet vector (modification allowed)
+     * @return the iterator
+     */
+    inline std::vector<Packet*>::iterator vector_begin() {
+        return packets.begin();
+    }
+
+    /**
+     * @brief Returns an iterator on the end of the packet vector (modification allowed)
+     * @return the iterator
+     */
+    inline std::vector<Packet*>::iterator vector_end() {
+        return packets.end();
+    }
+
     /*
      * Return the first packet of the batch
      */
@@ -740,7 +772,7 @@ public :
     inline PacketBatchVector* clone_batch() {
         PacketBatchVector* head = 0;
         Packet* last = 0;
-        FOR_EACH_PACKET_VEC(first(), p) {
+        FOR_EACH_PACKET_VEC(this, p) {
             Packet* q = p->clone();
             if (last == 0) {
                 head = start_head(q);
@@ -776,7 +808,7 @@ public :
  * Recycle a whole batch
  */
 inline void PacketBatchVector::kill() {
-    FOR_EACH_PACKET_SAFE_VEC(first(),p) {
+    FOR_EACH_PACKET_SAFE_VEC(this,p) {
         p->kill();
     }
     delete this;

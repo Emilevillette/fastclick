@@ -7,8 +7,8 @@
 #if HAVE_VECTOR
     #include <click/packetbatchvector.hh>
 
-    #define FOR_EACH_PACKET(batch,p)            FOR_EACH_PACKET_VEC(batch->first(),p)
-    #define FOR_EACH_PACKET_SAFE(batch,p)       FOR_EACH_PACKET_SAFE_VEC(batch->first(),p)
+    #define FOR_EACH_PACKET                     FOR_EACH_PACKET_VEC
+    #define FOR_EACH_PACKET_SAFE                FOR_EACH_PACKET_SAFE_VEC
     #define EXECUTE_FOR_EACH_PACKET             EXECUTE_FOR_EACH_PACKET_VEC
     #define EXECUTE_FOR_EACH_PACKET_UNTIL_DO    EXECUTE_FOR_EACH_PACKET_UNTIL_DO_VEC
     #define EXECUTE_FOR_EACH_PACKET_UNTIL       EXECUTE_FOR_EACH_PACKET_UNTIL_VEC
