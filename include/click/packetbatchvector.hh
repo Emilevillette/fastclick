@@ -43,22 +43,11 @@ CLICK_DECLS
  * another packet to replace the current one. This version cannot drop !
  * Use _DROPPABLE version if the function could return null.
  */
-//OBSOLETE, REWRITE FOR VECTOR
 #define EXECUTE_FOR_EACH_PACKET_VEC(fnt,batch) \
-                Packet* efep_next = ((batch != 0)? batch->first()->next() : 0 );\
-                Packet* p = batch->first();\
-                Packet* last = 0;\
-                for (;p != 0;p=efep_next,efep_next=(p==0?0:p->next())) {\
-                    Packet* q = fnt(p);\
-                    if (q != p) {\
-                        if (last) {\
-                            last->set_next(q);\
-                        } else {\
-                            batch = reinterpret_cast<PacketBatchVector*>(q);\
-                        }\
-                        q->set_next(efep_next);\
-                    }\
-                    last = q;\
+                for(auto it = ((PacketBatchVector*)batch)->vector_begin(); it != ((PacketBatchVector*)batch)->vector_end(); ++it) {\
+                    Packet* p = *it;\
+                    Packet *q = fnt(p);\
+                    *it = q;\
                 }
 
 /**
@@ -68,6 +57,10 @@ CLICK_DECLS
  * with the whole batch in argument, the packet causing the stop, and the next
  * reference. This function does not kill any packet by itself.
  */
+//#define
+
+
+
 //OBSOLETE, REWRITE FOR VECTOR
 #define EXECUTE_FOR_EACH_PACKET_UNTIL_DO_VEC(fnt,batch,on_stop) \
                 Packet* efep_next = ((batch != 0)? batch->first()->next() : 0 );\
@@ -557,8 +550,7 @@ public :
      * If the Packet is null, returns no batch.
      */
     inline static PacketBatchVector* start_head(Packet* p) {
-        PacketBatchVector* b = make_packet_batch_from_pool(1);
-        b->append_packet(p);
+        PacketBatchVector* b = make_from_packet(p);
         return b;
     }
 
