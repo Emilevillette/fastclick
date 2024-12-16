@@ -2,7 +2,8 @@
 #ifndef CLICK_PACKETBATCHVECTOR_HH
 #define CLICK_PACKETBATCHVECTOR_HH
 
-#include <vector>
+
+#include <click/vector.hh>
 #include <click/packet.hh>
 #include <click/memorypool.hh>
 CLICK_DECLS
@@ -14,8 +15,7 @@ CLICK_DECLS
  *   iteration. Use _SAFE version if you want to modify it on the fly.
  */
 
-#define FOR_EACH_PACKET_VEC(batch,p) Packet *p = batch->first();\
-                for(auto it = ((PacketBatchVector*)batch)->vector_cbegin();it != ((PacketBatchVector*)batch)->vector_cend(); ++it, p = *it)
+#define FOR_EACH_PACKET_VEC(batch,p) Packet *p = batch->first(); for(unsigned int i=0; i < batch->count(); i++, p=((PacketBatchVector *) batch)->at(i))
 
 /**
  * Iterate over all packets of a batch. The batch cannot be modified during
@@ -30,8 +30,9 @@ CLICK_DECLS
  *  the loop.
  */
 #define FOR_EACH_PACKET_SAFE_VEC(batch,p) \
-                Packet *p = batch->first();      \
-                for(auto it = ((PacketBatchVector*)batch)->vector_begin(); it != ((PacketBatchVector*)batch)->vector_end(); ++it, p = *it)
+                Packet* fep_next = batch->count() > 0 ? ((PacketBatchVector *) batch)->at(1) : 0;\
+                Packet* p = batch->first();                                                                \
+                for(unsigned int i=0; i < batch->count(); i++, p=fep_next, fep_next=(p==0?0:((PacketBatchVector *) batch)->at(i+1)))
 
 // Alias for the old name
 #define FOR_EACH_PACKET_VEC_SAFE FOR_EACH_PACKET_SAFE_VEC
@@ -44,10 +45,12 @@ CLICK_DECLS
  * Use _DROPPABLE version if the function could return null.
  */
 #define EXECUTE_FOR_EACH_PACKET_VEC(fnt,batch) \
-                for(auto it = ((PacketBatchVector*)batch)->vector_begin(); it != ((PacketBatchVector*)batch)->vector_end(); ++it) {\
-                    Packet* p = *it;\
+                Packet *p = nullptr;\
+                for(unsigned int i=0; i<batch->count();i++, p=((PacketBatchVector*) batch)->at(i)){\
                     Packet *q = fnt(p);\
-                    *it = q;\
+                    if(p != q) {\
+                        batch->set_at(i, q);\
+                    }\
                 }
 
 /**
@@ -423,8 +426,9 @@ class PacketBatchVector {
 #define MAX_BATCH_SIZE 8192
 
 private:
-    std::vector<Packet*> packets;
+    Packet* packets[MAX_BATCH_SIZE] = {nullptr};
     MemoryPool<PacketBatchVector>* pool;
+    int batch_size = 0;
 
     /**
      * @brief Allocate a new PacketBatchVector from a memory pool
@@ -433,58 +437,25 @@ private:
      *
      * @return a pointer to a PacketBatchVector allocated with a MemoryPool
      */
-    inline static PacketBatchVector * make_packet_batch_from_pool(unsigned int c) {
+    inline static PacketBatchVector * make_packet_batch_from_pool() {
         MemoryPool<PacketBatchVector>* mem_pool = new MemoryPool<PacketBatchVector>(1);
         PacketBatchVector* b = mem_pool->getMemory();
-        b->packets = std::vector<Packet*>(c);
         b->pool = mem_pool;
         return b;
     }
 
 public :
-    PacketBatchVector(void): packets(std::vector<Packet*>()) {}
+    PacketBatchVector(void) {}
 
     ~PacketBatchVector() {
         delete pool;
-    }
-
-    /**
-     * @brief Returns an iterator on the beginning of the packet vector (no modification allowed)
-     * @return the iterator
-     */
-    inline std::vector<Packet*>::const_iterator vector_cbegin() const {
-        return packets.cbegin();
-    }
-
-    /**
-     * @brief Returns an iterator on the end of the packet vector (no modification allowed)
-     * @return the iterator
-     */
-    inline std::vector<Packet*>::const_iterator vector_cend() const {
-        return packets.cend();
-    }
-
-    /**
-     * @brief Returns an iterator on the beginning beginning of the packet vector (modification allowed)
-     * @return the iterator
-     */
-    inline std::vector<Packet*>::iterator vector_begin() {
-        return packets.begin();
-    }
-
-    /**
-     * @brief Returns an iterator on the end of the packet vector (modification allowed)
-     * @return the iterator
-     */
-    inline std::vector<Packet*>::iterator vector_end() {
-        return packets.end();
     }
 
     /*
      * Return the first packet of the batch
      */
     inline Packet* first() {
-        return packets.front();
+        return count() == 0 ? nullptr : packets[0];
     }
 
     /*
@@ -499,7 +470,23 @@ public :
      * Return the tail of the batch
      */
     inline Packet* tail() {
-        return packets.back();
+        return count() == 0 ? nullptr : packets[count() - 1];
+    }
+
+    inline Packet* at(unsigned int pos) {
+        return packets[pos];
+    }
+
+    inline void set_at(unsigned int pos, Packet* p) {
+        if (pos >= MAX_BATCH_SIZE) {
+            click_chatter("Error: PacketBatchVector::set_at: pos %u is bigger than MAX_BATCH_SIZE %u", pos, MAX_BATCH_SIZE);
+            return;
+        }
+        if(pos > count()) {
+            click_chatter("Error: PacketBatchVector::set_at: pos %u is bigger than count %u", pos, count());
+            return;
+        }
+        packets[pos] = p;
     }
 
     /*
@@ -507,34 +494,36 @@ public :
      * One must therefore pass the tail and the number of packets to do it in constant time. Chances are you
      * just created that list and can track that.
      */
+    // DEPRECATED
     inline void append_simple_list(Packet* lhead, Packet* ltail, int lcount) {
-        packets.insert(packets.end(), lcount, lhead);
-        set_tail(ltail);
+        //packets.insert(packets.end(), lcount, lhead);
+        //set_tail(ltail);
         //ltail->set_next(0);
-        set_count(count() + lcount);
+        //set_count(count() + lcount);
     }
 
     /*
      * Append a proper PacketBatchVector to this batch.
      */
     inline void append_batch(PacketBatchVector* head) {
-        packets.insert(packets.end(), head->packets.begin(), head->packets.end());
-        set_tail(head->tail());
-        set_count(count() + head->count());
+        for(unsigned int i = 0; i < head->count(); i++) {
+            append_packet(head->packets[i]);
+        }
     }
 
     /*
      * Append a packet to the list.
      */
     inline void append_packet(Packet* p) {
-        packets.push_back(p);
+        packets[count()] = p;
+        batch_size++;
     }
 
     /**
      * Return the number of packets in this batch
      */
     inline unsigned count() {
-        return packets.size();
+        return batch_size;
         //unsigned int r = BATCH_COUNT_ANNO(first());
         //assert(r); //If this is a batch, this anno has to be set
         //return r;
@@ -605,15 +594,16 @@ public :
             return;
         }
 
-        second = make_packet_batch_from_pool(count() - first_batch_count);
-        second->packets = std::vector<Packet*>(packets.begin() + first_batch_count, packets.end());
+        second = make_packet_batch_from_pool();
 
         Packet* second_tail = tail();
         set_tail(middle);
 
         second->set_tail(second_tail);
 
-        packets.erase(packets.begin() + first_batch_count, packets.end());
+        for(int i = first_batch_count; i < batch_size; i++) {
+            packets[i] = nullptr;
+        }
     }
 
     /**
@@ -636,8 +626,7 @@ public :
             }
         }
 
-        second = make_packet_batch_from_pool(count() - first_batch_count);
-        second->packets = std::vector<Packet*>(packets.begin() + first_batch_count, packets.end());
+        second = make_packet_batch_from_pool();
 
         Packet* second_tail = tail();
         set_tail(middle);
@@ -646,7 +635,9 @@ public :
 
         set_count(first_batch_count);
 
-        packets.erase(packets.begin() + first_batch_count, packets.end());
+        for(int i = first_batch_count; i < batch_size; i++) {
+            packets[i] = nullptr;
+        }
     }
 
     inline PacketBatchVector* split(int first_batch_count) {
@@ -663,8 +654,7 @@ public :
         if (count() == 1)
             return 0;
 
-        PacketBatchVector* b = make_packet_batch_from_pool(count() - 1);
-        b->packets = std::vector<Packet*>(packets.begin() + 1, packets.end());
+        PacketBatchVector* b = make_packet_batch_from_pool();
         delete this;
         return b;
     }
@@ -679,7 +669,7 @@ public :
      * @pre The tail->next() packet must be zero
      */
     inline static PacketBatchVector* make_from_tailed_list(Packet* head, unsigned int size) {
-        PacketBatchVector* b = make_packet_batch_from_pool(size);
+        PacketBatchVector* b = make_packet_batch_from_pool();
         Packet* current = head;
         for (unsigned int i = 1; i < size; i++) {
             b->append_packet(current);
@@ -727,7 +717,7 @@ public :
      */
     inline static PacketBatchVector* make_from_packet(Packet* p) {
         if (!p) return 0;
-        PacketBatchVector* b = make_packet_batch_from_pool(1);
+        PacketBatchVector* b = make_packet_batch_from_pool();
         b->append_packet(p);
         b->set_tail(p);
         return b;
