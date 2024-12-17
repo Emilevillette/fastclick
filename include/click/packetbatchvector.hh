@@ -31,7 +31,7 @@ CLICK_DECLS
  */
 #define FOR_EACH_PACKET_SAFE_VEC(batch,p) \
                 Packet* fep_next = batch->count() > 0 ? ((PacketBatchVector *) batch)->at(1) : 0;\
-                Packet* p = batch->first();                                                                \
+                Packet* p = batch->first();\
                 for(unsigned int i=0; i < batch->count(); i++, p=fep_next, fep_next=(p==0?0:((PacketBatchVector *) batch)->at(i+1)))
 
 // Alias for the old name
@@ -438,18 +438,14 @@ private:
      * @return a pointer to a PacketBatchVector allocated with a MemoryPool
      */
     inline static PacketBatchVector * make_packet_batch_from_pool() {
-        MemoryPool<PacketBatchVector>* mem_pool = new MemoryPool<PacketBatchVector>(1);
-        PacketBatchVector* b = mem_pool->getMemory();
-        b->pool = mem_pool;
+        MemoryPool<PacketBatchVector> mem_pool;
+        mem_pool.initialize(1);
+        PacketBatchVector* b = mem_pool.getMemory();
+        b->pool = &mem_pool;
         return b;
     }
 
 public :
-    PacketBatchVector(void) {}
-
-    ~PacketBatchVector() {
-        delete pool;
-    }
 
     /*
      * Return the first packet of the batch
@@ -482,8 +478,8 @@ public :
             click_chatter("Error: PacketBatchVector::set_at: pos %u is bigger than MAX_BATCH_SIZE %u", pos, MAX_BATCH_SIZE);
             return;
         }
-        if(pos > count()) {
-            click_chatter("Error: PacketBatchVector::set_at: pos %u is bigger than count %u", pos, count());
+        if(pos >= count()) {
+            click_chatter("Error: PacketBatchVector::set_at: pos %u is bigger than size of batch %u", pos, count());
             return;
         }
         packets[pos] = p;
@@ -655,7 +651,10 @@ public :
             return 0;
 
         PacketBatchVector* b = make_packet_batch_from_pool();
-        delete this;
+        for(unsigned int i = 1; i < count(); i++) {
+            b->append_packet(packets[i]);
+        }
+        pool->releaseMemory(this);
         return b;
     }
 
@@ -793,7 +792,7 @@ inline void PacketBatchVector::kill() {
     FOR_EACH_PACKET_SAFE_VEC(this,p) {
         p->kill();
     }
-    delete this;
+    pool->releaseMemory(this);
 }
 
 #if HAVE_BATCH_RECYCLE
