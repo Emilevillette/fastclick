@@ -25,6 +25,9 @@
 
 CLICK_DECLS
 
+MemoryPool<PacketBatchVector> PacketBatchVector::batch_pool = MemoryPool<PacketBatchVector>(BATCH_POOL_INITIAL_SIZE);
+//MemoryPool<PacketBatchVector>* batch_pool = nullptr;
+
 #if HAVE_BATCH
 
 # if HAVE_CLICK_PACKET_POOL
@@ -42,8 +45,8 @@ void PacketBatchVector::fast_kill() {
         WritablePacket* p = static_cast<WritablePacket*>(up);
         BATCH_RECYCLE_PACKET(p);
     }
+    batch_pool->releaseMemory(this);
     BATCH_RECYCLE_END();
-    delete this;
 }
 
 /**
@@ -55,8 +58,8 @@ void PacketBatchVector::fast_kill_nonatomic() {
         WritablePacket* p = static_cast<WritablePacket*>(up);
         BATCH_RECYCLE_PACKET_NONATOMIC(p);
     }
+    batch_pool.releaseMemory(this);
     BATCH_RECYCLE_END();
-    delete this;
 }
 # endif
 
