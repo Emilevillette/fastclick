@@ -801,7 +801,7 @@ inline void PacketBatchVector::kill() {
 			if (p->shared()) {\
 				p->kill();\
 			} else {\
-				BATCH_RECYCLE_UNKNOWN_PACKET(p);\
+				BATCH_RECYCLE_UNKNOWN_PACKET_VEC(p);\
 			}\
 		}
 
@@ -809,28 +809,28 @@ inline void PacketBatchVector::kill() {
             if (p->shared_nonatomic()) {\
                 p->kill_nonatomic();\
             } else {\
-                BATCH_RECYCLE_UNKNOWN_PACKET(p);\
+                BATCH_RECYCLE_UNKNOWN_PACKET_VEC(p);\
             }\
         }
 
 #if HAVE_DPDK_PACKET_POOL
 #define BATCH_RECYCLE_UNKNOWN_PACKET_VEC(p) {\
 	if (p->data_packet() == 0 && (DPDKDevice::is_dpdk_packet(p)) && p->buffer() != 0) {\
-		BATCH_RECYCLE_ADD_DATA_PACKET(p);\
+		BATCH_RECYCLE_ADD_DATA_PACKET_VEC(p);\
 	} else {\
-		BATCH_RECYCLE_ADD_PACKET(p);}}
+		BATCH_RECYCLE_ADD_PACKET_VEC(p);}}
 #elif !defined(CLICK_NOINDIRECT)
 #define BATCH_RECYCLE_UNKNOWN_PACKET_VEC(p) {\
 	if (p->data_packet() == 0 && p->buffer_destructor() == 0 && p->buffer() != 0) {\
-		BATCH_RECYCLE_ADD_DATA_PACKET(p);\
+		BATCH_RECYCLE_ADD_DATA_PACKET_VEC(p);\
 	} else {\
-	    BATCH_RECYCLE_ADD_PACKET(p);}}
+	    BATCH_RECYCLE_ADD_PACKET_VEC(p);}}
 #else
 #define BATCH_RECYCLE_UNKNOWN_PACKET_VEC(p) {\
 	if (p->buffer_destructor() == 0 && p->buffer() != 0) {\
-		BATCH_RECYCLE_ADD_DATA_PACKET(p);\
+		BATCH_RECYCLE_ADD_DATA_PACKET_VEC(p);\
 	} else {\
-	    BATCH_RECYCLE_ADD_PACKET(p);}}
+	    BATCH_RECYCLE_ADD_PACKET_VEC(p);}}
 #endif
 
 #define BATCH_RECYCLE_END_VEC() \
@@ -854,9 +854,9 @@ inline void PacketBatchVector::kill() {
  */
 #define BATCH_RECYCLE_PACKET_CONTEXT_VEC(p) {\
             if (likely(is_fullpush())) {\
-                BATCH_RECYCLE_PACKET_NONATOMIC(p);\
+                BATCH_RECYCLE_PACKET_NONATOMIC_VEC(p);\
             } else {\
-                BATCH_RECYCLE_PACKET(p);\
+                BATCH_RECYCLE_PACKET_VEC(p);\
             }\
         }
 

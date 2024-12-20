@@ -776,7 +776,7 @@ inline void PacketBatchLinkedList::kill() {
 			if (p->shared()) {\
 				p->kill();\
 			} else {\
-				BATCH_RECYCLE_UNKNOWN_PACKET(p);\
+				BATCH_RECYCLE_UNKNOWN_PACKET_LL(p);\
 			}\
 		}
 
@@ -784,28 +784,28 @@ inline void PacketBatchLinkedList::kill() {
             if (p->shared_nonatomic()) {\
                 p->kill_nonatomic();\
             } else {\
-                BATCH_RECYCLE_UNKNOWN_PACKET(p);\
+                BATCH_RECYCLE_UNKNOWN_PACKET_LL(p);\
             }\
         }
 
 #if HAVE_DPDK_PACKET_POOL
 #define BATCH_RECYCLE_UNKNOWN_PACKET_LL(p) {\
 	if (p->data_packet() == 0 && (DPDKDevice::is_dpdk_packet(p)) && p->buffer() != 0) {\
-		BATCH_RECYCLE_ADD_DATA_PACKET(p);\
+		BATCH_RECYCLE_ADD_DATA_PACKET_LL(p);\
 	} else {\
-		BATCH_RECYCLE_ADD_PACKET(p);}}
+		BATCH_RECYCLE_ADD_PACKET_LL(p);}}
 #elif !defined(CLICK_NOINDIRECT)
 #define BATCH_RECYCLE_UNKNOWN_PACKET_LL(p) {\
 	if (p->data_packet() == 0 && p->buffer_destructor() == 0 && p->buffer() != 0) {\
-		BATCH_RECYCLE_ADD_DATA_PACKET(p);\
+		BATCH_RECYCLE_ADD_DATA_PACKET_LL(p);\
 	} else {\
-	    BATCH_RECYCLE_ADD_PACKET(p);}}
+	    BATCH_RECYCLE_ADD_PACKET_LL(p);}}
 #else
 #define BATCH_RECYCLE_UNKNOWN_PACKET_LL(p) {\
 	if (p->buffer_destructor() == 0 && p->buffer() != 0) {\
-		BATCH_RECYCLE_ADD_DATA_PACKET(p);\
+		BATCH_RECYCLE_ADD_DATA_PACKET_LL(p);\
 	} else {\
-	    BATCH_RECYCLE_ADD_PACKET(p);}}
+	    BATCH_RECYCLE_ADD_PACKET_LL(p);}}
 #endif
 
 #define BATCH_RECYCLE_END_LL() \
@@ -829,9 +829,9 @@ inline void PacketBatchLinkedList::kill() {
  */
 #define BATCH_RECYCLE_PACKET_CONTEXT_LL(p) {\
             if (likely(is_fullpush())) {\
-                BATCH_RECYCLE_PACKET_NONATOMIC(p);\
+                BATCH_RECYCLE_PACKET_NONATOMIC_LL(p);\
             } else {\
-                BATCH_RECYCLE_PACKET(p);\
+                BATCH_RECYCLE_PACKET_LL(p);\
             }\
         }
 
