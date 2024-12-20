@@ -40,28 +40,28 @@ MemoryPool<PacketBatchVector> PacketBatchVector::batch_pool = MemoryPool<PacketB
  *  function directly to avoid dual iteration.
  */
 void PacketBatchVector::fast_kill() {
-    BATCH_RECYCLE_START();
+    BATCH_RECYCLE_START_VEC();
     FOR_EACH_PACKET_SAFE_VEC(this,up) {
         WritablePacket* p = static_cast<WritablePacket*>(up);
-        BATCH_RECYCLE_PACKET(p);
+        BATCH_RECYCLE_PACKET_VEC(p);
         pop_at(i);
     }
     batch_pool.releaseMemory(this);
-    BATCH_RECYCLE_END();
+    BATCH_RECYCLE_END_VEC();
 }
 
 /**
  * Recycle a whole batch, faster in most cases than a loop of kill_nonatomic
  */
 void PacketBatchVector::fast_kill_nonatomic() {
-    BATCH_RECYCLE_START();
+    BATCH_RECYCLE_START_VEC();
     FOR_EACH_PACKET_SAFE_VEC(this,up) {
         WritablePacket* p = static_cast<WritablePacket*>(up);
-        BATCH_RECYCLE_PACKET_NONATOMIC(p);
+        BATCH_RECYCLE_PACKET_NONATOMIC_VEC(p);
         pop_at(i);
     }
     batch_pool.releaseMemory(this);
-    BATCH_RECYCLE_END();
+    BATCH_RECYCLE_END_VEC();
 }
 # endif
 

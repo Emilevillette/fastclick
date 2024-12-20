@@ -37,24 +37,24 @@ CLICK_DECLS
  *  function directly to avoid dual iteration.
  */
 void PacketBatchLinkedList::fast_kill() {
-    BATCH_RECYCLE_START();
+    BATCH_RECYCLE_START_LL();
     FOR_EACH_PACKET_SAFE_LL(first(),up) {
         WritablePacket* p = static_cast<WritablePacket*>(up);
-        BATCH_RECYCLE_PACKET(p);
+        BATCH_RECYCLE_PACKET_LL(p);
     }
-    BATCH_RECYCLE_END();
+    BATCH_RECYCLE_END_LL();
 }
 
 /**
  * Recycle a whole batch, faster in most cases than a loop of kill_nonatomic
  */
 void PacketBatchLinkedList::fast_kill_nonatomic() {
-    BATCH_RECYCLE_START();
+    BATCH_RECYCLE_START_LL();
     FOR_EACH_PACKET_SAFE_LL(first(),up) {
         WritablePacket* p = static_cast<WritablePacket*>(up);
-        BATCH_RECYCLE_PACKET_NONATOMIC(p);
+        BATCH_RECYCLE_PACKET_NONATOMIC_LL(p);
     }
-    BATCH_RECYCLE_END();
+    BATCH_RECYCLE_END_LL();
 }
 # endif
 
