@@ -2,11 +2,11 @@
 #define CLICK_PACKETBATCH_HH
 
 #include <click/config.h>
+#include <click/packetbatchvector.hh>
+#include <click/packetbatchlinkedlist.hh>
 
 
 #if HAVE_VECTOR
-    #include <click/packetbatchvector.hh>
-
     #define FOR_EACH_PACKET                     FOR_EACH_PACKET_VEC
     #define FOR_EACH_PACKET_SAFE                FOR_EACH_PACKET_SAFE_VEC
     #define EXECUTE_FOR_EACH_PACKET             EXECUTE_FOR_EACH_PACKET_VEC
@@ -21,9 +21,19 @@
     #define CLASSIFY_EACH_PACKET_IGNORE         CLASSIFY_EACH_PACKET_IGNORE_VEC
     #define MAKE_BATCH                          MAKE_BATCH_VEC
 
-#else
-    #include <click/packetbatchlinkedlist.hh>
+    #define BATCH_RECYLE_START                  BATCH_RECYCLE_START_VEC
+    #define BATCH_RECYCLE_ADD_PACKET            BATCH_RECYCLE_ADD_PACKET_VEC
+    #define BATCH_RECYCLE_ADD_DATA_PACKET       BATCH_RECYCLE_ADD_DATA_PACKET_VEC
+    #define BATCH_RECYCLE_PACKET                BATCH_RECYCLE_PACKET_VEC
+    #define BATCH_RECYCLE_PACKET_NONATOMIC      BATCH_RECYCLE_PACKET_NONATOMIC_VEC
+    #define BATCH_RECYCLE_UNKNOWN_PACKET        BATCH_RECYCLE_UNKNOWN_PACKET_VEC
+    #define BATCH_RECYCLE_END                   BATCH_RECYCLE_END_VEC
+    #define BATCH_RECYCLE_PACKET_CONTEXT        BATCH_RECYCLE_PACKET_CONTEXT_VEC
+    #define BATCH_CREATE_INIT                   BATCH_CREATE_INIT_VEC
+    #define BATCH_CREATE_APPEND                 BATCH_CREATE_APPEND_VEC
+    #define BATCH_CREATE_FINISH                 BATCH_CREATE_FINISH_VEC
 
+#else
     #define FOR_EACH_PACKET(batch,p)            FOR_EACH_PACKET_LL(batch->first(),p)
     #define FOR_EACH_PACKET_SAFE(batch,p)       FOR_EACH_PACKET_SAFE_LL(batch->first(),p)
     #define EXECUTE_FOR_EACH_PACKET             EXECUTE_FOR_EACH_PACKET_LL
@@ -37,6 +47,18 @@
     #define CLASSIFY_EACH_PACKET                CLASSIFY_EACH_PACKET_LL
     #define CLASSIFY_EACH_PACKET_IGNORE         CLASSIFY_EACH_PACKET_IGNORE_LL
     #define MAKE_BATCH                          MAKE_BATCH_LL
+
+    #define BATCH_RECYLE_START                  BATCH_RECYCLE_START_LL
+    #define BATCH_RECYCLE_ADD_PACKET            BATCH_RECYCLE_ADD_PACKET_LL
+    #define BATCH_RECYCLE_ADD_DATA_PACKET       BATCH_RECYCLE_ADD_DATA_PACKET_LL
+    #define BATCH_RECYCLE_PACKET                BATCH_RECYCLE_PACKET_LL
+    #define BATCH_RECYCLE_PACKET_NONATOMIC      BATCH_RECYCLE_PACKET_NONATOMIC_LL
+    #define BATCH_RECYCLE_UNKNOWN_PACKET        BATCH_RECYCLE_UNKNOWN_PACKET_LL
+    #define BATCH_RECYCLE_END                   BATCH_RECYCLE_END_LL
+    #define BATCH_RECYCLE_PACKET_CONTEXT        BATCH_RECYCLE_PACKET_CONTEXT_LL
+    #define BATCH_CREATE_INIT                   BATCH_CREATE_INIT_LL
+    #define BATCH_CREATE_APPEND                 BATCH_CREATE_APPEND_LL
+    #define BATCH_CREATE_FINISH                 BATCH_CREATE_FINISH_LL
 #endif
 
 #endif // CLICK_PACKETBATCH_HH

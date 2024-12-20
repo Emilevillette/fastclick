@@ -744,7 +744,7 @@ inline void PacketBatchLinkedList::kill() {
 }
 
 #if HAVE_BATCH_RECYCLE
-#define BATCH_RECYCLE_START() \
+#define BATCH_RECYCLE_START_LL() \
 	WritablePacket* head_packet = 0;\
 	WritablePacket* head_data = 0;\
 	WritablePacket* last_packet = 0;\
@@ -752,7 +752,7 @@ inline void PacketBatchLinkedList::kill() {
 	unsigned int n_packet = 0;\
 	unsigned int n_data = 0;
 
-#define BATCH_RECYCLE_ADD_PACKET(p) {\
+#define BATCH_RECYCLE_ADD_PACKET_LL(p) {\
 	if (head_packet == 0) {\
 		head_packet = static_cast<WritablePacket*>(p);\
 		last_packet = static_cast<WritablePacket*>(p);\
@@ -762,7 +762,7 @@ inline void PacketBatchLinkedList::kill() {
 	}\
 	n_packet++;}
 
-#define BATCH_RECYCLE_ADD_DATA_PACKET(p) {\
+#define BATCH_RECYCLE_ADD_DATA_PACKET_LL(p) {\
 	if (head_data == 0) {\
 		head_data = static_cast<WritablePacket*>(p);\
 		last_data = static_cast<WritablePacket*>(p);\
@@ -772,7 +772,7 @@ inline void PacketBatchLinkedList::kill() {
 	}\
 	n_data++;}
 
-#define BATCH_RECYCLE_PACKET(p) {\
+#define BATCH_RECYCLE_PACKET_LL(p) {\
 			if (p->shared()) {\
 				p->kill();\
 			} else {\
@@ -780,7 +780,7 @@ inline void PacketBatchLinkedList::kill() {
 			}\
 		}
 
-#define BATCH_RECYCLE_PACKET_NONATOMIC(p) {\
+#define BATCH_RECYCLE_PACKET_NONATOMIC_LL(p) {\
             if (p->shared_nonatomic()) {\
                 p->kill_nonatomic();\
             } else {\
@@ -789,26 +789,26 @@ inline void PacketBatchLinkedList::kill() {
         }
 
 #if HAVE_DPDK_PACKET_POOL
-#define BATCH_RECYCLE_UNKNOWN_PACKET(p) {\
+#define BATCH_RECYCLE_UNKNOWN_PACKET_LL(p) {\
 	if (p->data_packet() == 0 && (DPDKDevice::is_dpdk_packet(p)) && p->buffer() != 0) {\
 		BATCH_RECYCLE_ADD_DATA_PACKET(p);\
 	} else {\
 		BATCH_RECYCLE_ADD_PACKET(p);}}
 #elif !defined(CLICK_NOINDIRECT)
-#define BATCH_RECYCLE_UNKNOWN_PACKET(p) {\
+#define BATCH_RECYCLE_UNKNOWN_PACKET_LL(p) {\
 	if (p->data_packet() == 0 && p->buffer_destructor() == 0 && p->buffer() != 0) {\
 		BATCH_RECYCLE_ADD_DATA_PACKET(p);\
 	} else {\
 	    BATCH_RECYCLE_ADD_PACKET(p);}}
 #else
-#define BATCH_RECYCLE_UNKNOWN_PACKET(p) {\
+#define BATCH_RECYCLE_UNKNOWN_PACKET_LL(p) {\
 	if (p->buffer_destructor() == 0 && p->buffer() != 0) {\
 		BATCH_RECYCLE_ADD_DATA_PACKET(p);\
 	} else {\
 	    BATCH_RECYCLE_ADD_PACKET(p);}}
 #endif
 
-#define BATCH_RECYCLE_END() \
+#define BATCH_RECYCLE_END_LL() \
 	if (last_packet) {\
 		last_packet->set_next(0);\
 		PacketBatchLinkedList::make_from_simple_list(head_packet,last_packet,n_packet)->recycle_batch(false);\
@@ -818,16 +818,16 @@ inline void PacketBatchLinkedList::kill() {
 		PacketBatchLinkedList::make_from_simple_list(head_data,last_data,n_data)->recycle_batch(true);\
 	}
 #else
-#define BATCH_RECYCLE_START() {}
-#define BATCH_RECYCLE_END() {}
-#define BATCH_RECYCLE_PACKET(p) {p->kill();}
-#define BATCH_RECYCLE_PACKET_NONATOMIC(p) {p->kill_nonatomic();}
+#define BATCH_RECYCLE_START_LL() {}
+#define BATCH_RECYCLE_END_LL() {}
+#define BATCH_RECYCLE_PACKET_LL(p) {p->kill();}
+#define BATCH_RECYCLE_PACKET_NONATOMIC_LL(p) {p->kill_nonatomic();}
 #endif
 
 /**
  * Use the context of the element to know if the NONATOMIC or ATOMIC version should be called
  */
-#define BATCH_RECYCLE_PACKET_CONTEXT(p) {\
+#define BATCH_RECYCLE_PACKET_CONTEXT_LL(p) {\
             if (likely(is_fullpush())) {\
                 BATCH_RECYCLE_PACKET_NONATOMIC(p);\
             } else {\
@@ -838,11 +838,11 @@ inline void PacketBatchLinkedList::kill() {
 /**
  * Set of functions to efficiently create a batch.
  */
-#define BATCH_CREATE_INIT(batch) \
+#define BATCH_CREATE_INIT_LL(batch) \
         PacketBatchLinkedList* batch = 0; \
         int batch ## count = 0; \
         Packet* batch ## last = 0;
-#define BATCH_CREATE_APPEND(batch,p) \
+#define BATCH_CREATE_APPEND_LL(batch,p) \
         if (batch) { \
             batch ## last->set_next(p); \
         } else {\
@@ -850,7 +850,7 @@ inline void PacketBatchLinkedList::kill() {
         }\
         batch ## last = p;\
         batch ## count++;
-#define BATCH_CREATE_FINISH(batch) \
+#define BATCH_CREATE_FINISH_LL(batch) \
         if (batch) \
             batch->make_tail(batch ## last, batch ## count)
 
