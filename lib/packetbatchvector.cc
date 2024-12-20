@@ -44,8 +44,9 @@ void PacketBatchVector::fast_kill() {
     FOR_EACH_PACKET_SAFE_VEC(this,up) {
         WritablePacket* p = static_cast<WritablePacket*>(up);
         BATCH_RECYCLE_PACKET(p);
+        pop_at(i);
     }
-    batch_pool->releaseMemory(this);
+    batch_pool.releaseMemory(this);
     BATCH_RECYCLE_END();
 }
 
@@ -57,6 +58,7 @@ void PacketBatchVector::fast_kill_nonatomic() {
     FOR_EACH_PACKET_SAFE_VEC(this,up) {
         WritablePacket* p = static_cast<WritablePacket*>(up);
         BATCH_RECYCLE_PACKET_NONATOMIC(p);
+        pop_at(i);
     }
     batch_pool.releaseMemory(this);
     BATCH_RECYCLE_END();
