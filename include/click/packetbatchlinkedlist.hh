@@ -252,9 +252,9 @@ CLICK_DECLS
  * @args nbatches Number of output batches. In many case you want noutputs() + 1
  *      , keeping the last one for drops.
  * @args fnt Function to call which will return a value between 0 and nbatches.
- *  If the function returns a values < 0 or bigger than nbatches, th last batch
+ *  If the function returns a values < 0 or bigger than nbatches, the last batch
  *  of nbatches will be used.
- * @args batch The batch to be split
+ * @args cep_batch The batch to be split
  * @args on_finish function which take an output index and the batch when
  *  classification is finished, usually you want that to be
  *  checked_output_push_batch.

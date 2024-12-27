@@ -256,9 +256,9 @@ CLICK_DECLS
  * @args nbatches Number of output batches. In many case you want noutputs() + 1
  *      , keeping the last one for drops.
  * @args fnt Function to call which will return a value between 0 and nbatches.
- *  If the function returns a values < 0 or bigger than nbatches, th last batch
+ *  If the function returns a values < 0 or bigger than nbatches, the last batch
  *  of nbatches will be used.
- * @args batch The batch to be split
+ * @args cep_batch The batch to be split
  * @args on_finish function which take an output index and the batch when
  *  classification is finished, usually you want that to be
  *  checked_output_push_batch.
@@ -267,47 +267,20 @@ CLICK_DECLS
     {\
         PacketBatchVector* out[(nbatches)];\
         bzero(out,sizeof(PacketBatchVector*)*(nbatches));\
-        PacketBatchVector* cep_next = ((cep_batch != 0)? reinterpret_cast<PacketBatchVector*>(cep_batch->first()->next()) : 0 );\
         Packet* p = cep_batch->first();\
-        Packet* last = 0;\
-        int last_o = -1;\
-        int passed = 0;\
-        for (;p != 0;p=cep_next->first(),cep_next=(p==0?0:reinterpret_cast<PacketBatchVector*>(p->next()))) {\
-            int o = (fnt(p));\
+        \
+        for (unsigned int i=0; i<cep_batch->count(); i++, p=((PacketBatchVector*) cep_batch)->at(i)) {\
+            int o = fnt(p);\
             if (o < 0 || o>=(int)(nbatches)) o = (nbatches - 1);\
-            if (o == last_o) {\
-                passed ++;\
+            if(!out[o]) {\
+                out[o] = PacketBatchVector::make_from_packet(p);\
             } else {\
-                if (last == 0) {\
-                    out[o] = reinterpret_cast<PacketBatchVector*>(p);\
-                    reinterpret_cast<PacketBatchVector*>(p)->set_count(1);\
-                    reinterpret_cast<PacketBatchVector*>(p)->set_tail(p);\
-                } else {\
-                    out[last_o]->set_tail(last);\
-                    out[last_o]->set_count(out[last_o]->count() + passed);\
-                    if (!out[o]) {\
-                        out[o] = reinterpret_cast<PacketBatchVector*>(p);\
-                        out[o]->set_count(1);\
-                        out[o]->set_tail(p);\
-                    } else {\
-                        out[o]->append_packet(p);\
-                    }\
-                    passed = 0;\
-                }\
+                out[o]->append_packet(p);\
             }\
-            last = p;\
-            last_o = o;\
         }\
 \
-        if (passed) {\
-            out[last_o]->set_tail(last);\
-            out[last_o]->set_count(out[last_o]->count() + passed);\
-        }\
-\
-        unsigned i = 0;\
-        for (; i < (unsigned)(nbatches); i++) {\
+        for (unsigned i = 0; i < (unsigned)(nbatches); i++) {\
             if (out[i]) {\
-                out[i]->tail()->set_next(0);\
                 (on_finish(i,out[i]));\
             }\
         }\
