@@ -116,37 +116,24 @@ CLICK_DECLS
  * Example: EXECUTE_FOR_EACH_PACKET_DROPPABLE([this](Packet* p){return p->push(_nbytes);},batch,[](Packet* p){})
  */
 #define EXECUTE_FOR_EACH_PACKET_DROPPABLE_VEC(fnt,batch,on_drop) {\
-                Packet* efepd_next = ((batch != 0)? batch->first()->next() : 0 );\
                 Packet* p = batch->first();\
-                Packet* last = 0;\
                 int count = batch->count();\
-                for (;p != 0;p=efepd_next,efepd_next=(p==0?0:p->next())) {\
-            Packet* q = fnt(p);\
-            if (q == 0) {\
-                on_drop(p);\
-                if (last) {\
-                    last->set_next(efepd_next);\
-                } else {\
-                    batch = PacketBatchVector::start_head(efepd_next);\
-                }\
-                        count--;\
-                        continue;\
-            } else if (q != p) {\
-                        if (last) {\
-                            last->set_next(q);\
-                        } else {\
-                            batch = reinterpret_cast<PacketBatchVector*>(q);\
-                        }\
-                        q->set_next(efepd_next);\
+                int revised_count = batch->count();\
+                int current_pos = 0;\
+                for(int i = 0; i < count; i++, p=batch->at(i)){\
+                    Packet* q = fnt(p);\
+                    if (q == 0) {\
+                        on_drop(p);\
+                        revised_count--;\
+                    } else if (q != p) {\
+                        batch->set_at(current_pos, q);\
+                        current_pos++;\
                     }\
-                    last = q;\
                 }\
-                if (batch) {\
-                    batch->set_count(count);\
-                    batch->set_tail(last);\
-                    last->set_next(0);\
+                for(int i = revised_count; i < count; i++) {\
+                    batch->pop_at(i);\
                 }\
-            }\
+            }
 
 /**
  * Same as EXECUTE_FOR_EACH_PACKET_DROPPABLE but build a list of dropped packet
