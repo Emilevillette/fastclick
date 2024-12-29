@@ -161,6 +161,7 @@ CLICK_DECLS
  * as null after flushing.
  * On_flush is always called on the batch after the last packet.
  */
+ //OBSOLETE, REWRITE FOR VECTOR
 #define EXECUTE_FOR_EACH_PACKET_SPLITTABLE_VEC(fnt,batch,on_drop,on_flush) {\
             Packet* next = ((batch != 0)? batch->first()->next() : 0 );\
             Packet* p = batch->first();\
@@ -208,29 +209,20 @@ CLICK_DECLS
  * EXECUTE_FOR_EACH_PACKET_ADD( fnt, batch );
  */
 #define EXECUTE_FOR_EACH_PACKET_ADD_VEC(fnt,batch) {\
-            Packet* next = ((batch != 0)? batch->first()->next() : 0 );\
             Packet* p = batch->first();\
             Packet* last = 0;\
             int count = 0;\
-            for (;p != 0;p=next,next=(p==0?0:p->next())) {\
+            for(int i = 0; i < count; i++, p=batch->at(i)){\
                 auto add = [&batch,&last,&count](Packet*q) {\
-                    if (last) { \
-                        last->set_next(q); \
-                    } else { \
-                        batch = reinterpret_cast<PacketBatchVector*>(q);\
-                    }\
+                    batch->set_at(i, q);\
                     last = q;\
                     count++;\
                 };\
                 fnt(p,add);\
             }\
-            if (likely(last)) {\
-                batch->set_count(count);\
-                batch->set_tail(last);\
-                last->set_next(0);\
-            } else {\
-	        batch = 0;\
-	    }\
+            if (!likely(last)) {\
+	            batch = 0;\
+	        }\
         }\
 
 /**
