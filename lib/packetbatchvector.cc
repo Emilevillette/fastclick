@@ -26,7 +26,6 @@
 CLICK_DECLS
 
 MemoryPool<PacketBatchVector> PacketBatchVector::batch_pool = MemoryPool<PacketBatchVector>(BATCH_POOL_INITIAL_SIZE);
-//MemoryPool<PacketBatchVector>* batch_pool = nullptr;
 
 #if HAVE_BATCH
 

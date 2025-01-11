@@ -348,14 +348,14 @@ private:
 
 public :
 
-    /*
+    /**
      * Return the first packet of the batch
      */
     inline Packet* first() {
         return count() == 0 ? nullptr : packets[0];
     }
 
-    /*
+    /**
      * Set the tail of the batch
      */
     inline void set_tail(Packet* p) {
@@ -363,17 +363,29 @@ public :
         (void)p;
     }
 
-    /*
+    /**
      * Return the tail of the batch
      */
     inline Packet* tail() {
         return count() == 0 ? nullptr : packets[count() - 1];
     }
 
+    /**
+     * Return the packet at position pos
+     *
+     * @param pos The position of the packet in the batch
+     * @return The packet at position pos
+     */
     inline Packet* at(unsigned int pos) {
         return packets[pos];
     }
 
+    /**
+     * set the packet p at position pos
+     *
+     * @param pos The position of the packet in the batch
+     * @param p The packet to set at position pos
+     */
     inline void set_at(unsigned int pos, Packet* p) {
         if (pos >= MAX_BATCH_SIZE) {
             click_chatter("Error: PacketBatchVector::set_at: pos %u is bigger than MAX_BATCH_SIZE %u", pos, MAX_BATCH_SIZE);
@@ -409,16 +421,16 @@ public :
         (void)lcount;
     }
 
-    /*
+    /**
      * Append a proper PacketBatchVector to this batch.
      */
     inline void append_batch(PacketBatchVector* head) {
         for(unsigned int i = 0; i < head->count(); i++) {
-            append_packet(head->packets[i]);
+            append_packet(head->at(i));
         }
     }
 
-    /*
+    /**
      * Append a packet to the list.
      */
     inline void append_packet(Packet* p) {
@@ -469,8 +481,8 @@ public :
     /**
      * Set the number of packets in this batch
      */
+    //DEPRECATED
     inline void set_count(unsigned int c) {
-        //SET_BATCH_COUNT_ANNO(first(),c); // SEGFAULT ??
         (void)c;
     }
 
@@ -494,7 +506,7 @@ public :
         }
 
         second = make_from_packet(packets[first_batch_count]);
-        for(int i = first_batch_count + 1; i < batch_size; i++) {
+        for(unsigned int i = first_batch_count + 1; i < count(); i++) {
             second->append_packet(packets[i]);
             pop_at(i);
         }
@@ -521,7 +533,7 @@ public :
         }
 
         second = make_from_packet(packets[first_batch_count]);
-        for(int i = first_batch_count + 1; i < batch_size; i++) {
+        for(unsigned int i = first_batch_count + 1; i < count(); i++) {
             second->append_packet(packets[i]);
             pop_at(i);
         }
@@ -545,7 +557,7 @@ public :
         for(unsigned int i = 1; i < count(); i++) {
             b->append_packet(packets[i]);
         }
-        batch_pool.releaseMemory(this);
+        soft_kill();
         return b;
     }
 
@@ -586,9 +598,8 @@ public :
      * @param size Number of packets in the linkedlist
      */
     inline static PacketBatchVector* make_from_simple_list(Packet* head, Packet* tail, unsigned int size) {
-        PacketBatchVector* b = make_from_tailed_list(head,size);
-        b->set_tail(tail);
-        return b;
+        (void) tail;
+        return make_from_tailed_list(head,size);
     }
 
     /**
@@ -609,8 +620,6 @@ public :
         b->set_tail(tail);
         return b;
     }
-
-
 
     /**
      * Make a batch composed of a single packet
@@ -646,6 +655,18 @@ public :
      * Kill all packets in the batch
      */
     inline void kill();
+
+    /**
+     * Release the memory of the batch, but don't kill the packets in it.
+     */
+     inline void soft_kill() {
+        FOR_EACH_PACKET_SAFE_VEC(this,p) {
+            pop_at(i);
+        }
+
+        batch_pool.releaseMemory(this);
+    }
+
 
     /**
      * Clone the batch
