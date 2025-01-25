@@ -25,7 +25,7 @@
 
 CLICK_DECLS
 
-per_thread<MemoryPool<PacketBatchVector>> PacketBatchVector::batch_pool = per_thread<MemoryPool<PacketBatchVector>>();
+per_thread<MemoryPool<PacketBatchVector>> PacketBatchVector::batch_pool;
 
 #if HAVE_BATCH
 
