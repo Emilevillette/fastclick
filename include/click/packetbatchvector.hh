@@ -311,10 +311,12 @@ CLICK_DECLS
  */
 #define MAKE_BATCH_VEC(fnt,head,max) {\
         head = PacketBatchVector::make_from_packet(fnt);\
+        click_chatter("MAKE BATCH, head %p, max %u", head, max);\
         if (head != 0) {\
             unsigned int count = 1;\
             while (count < (unsigned)(max>0?max:BATCH_MAX_PULL)) {\
                 Packet* current = fnt;\
+                click_chatter("MAKE BATCH, current %p", current);\
                 if (current == 0)\
                     break;\
                 head->append_packet(current);\
@@ -344,7 +346,7 @@ class PacketBatchVector {
 private:
     Packet* packets[MAX_BATCH_SIZE] = {nullptr};
     int batch_size = 0;
-    static MemoryPool<PacketBatchVector> batch_pool;
+    static per_thread<MemoryPool<PacketBatchVector>> batch_pool;
 
 public :
 
@@ -404,7 +406,7 @@ public :
      * @return a pointer to a PacketBatchVector allocated with a MemoryPool
      */
     inline static PacketBatchVector * make_packet_batch_from_pool() {
-        PacketBatchVector* b = batch_pool.getMemory();
+        PacketBatchVector* b = batch_pool->getMemory();
         return b;
     }
 
@@ -664,7 +666,7 @@ public :
             pop_at(i);
         }
 
-        batch_pool.releaseMemory(this);
+        batch_pool->releaseMemory(this);
     }
 
 
@@ -708,7 +710,7 @@ inline void PacketBatchVector::kill() {
         pop_at(i);
     }
 
-    batch_pool.releaseMemory(this);
+    batch_pool->releaseMemory(this);
 }
 
 #if HAVE_BATCH_RECYCLE
