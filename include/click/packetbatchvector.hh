@@ -179,7 +179,7 @@ CLICK_DECLS
             Packet* last = 0;\
             int count = 0;\
             for(int i = 0; i < count; i++, p=batch->at(i)){\
-                auto add = [&batch,&last,&count](Packet*q) {\
+                auto add = [&batch,&last,&count, i](Packet*q) {\
                     batch->set_at(i, q);\
                     last = q;\
                     count++;\
