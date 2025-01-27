@@ -196,8 +196,8 @@ PacketTest::initialize(ErrorHandler *errh)
     CHECK(batch->count() == 100);
     CHECK(batch->first()->find_count() == 100);
     i = 1;
-    FOR_EACH_PACKET(batch,p) {
-        CHECK(p->headroom() == i++);
+    FOR_EACH_PACKET(batch,pkt) {
+        CHECK(pkt->headroom() == i++);
     }
 
     // Also check some packet header definition properties.
