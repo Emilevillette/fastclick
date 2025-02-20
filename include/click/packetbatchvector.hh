@@ -277,12 +277,10 @@ CLICK_DECLS
  */
 #define MAKE_BATCH_VEC(fnt,head,max) {\
         head = PacketBatchVector::make_from_packet(fnt);\
-        click_chatter("MAKE BATCH, head %p, max %u", head, max);\
         if (head != 0) {\
             unsigned int count = 1;\
             while (count < (unsigned)(max>0?max:BATCH_MAX_PULL)) {\
                 Packet* current = fnt;\
-                click_chatter("MAKE BATCH, current %p", current);\
                 if (current == 0)\
                     break;\
                 head->append_packet(current);\
