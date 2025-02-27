@@ -1507,6 +1507,33 @@ if test $enable_intel_cpu = yes; then
     AC_DEFINE(HAVE_INTEL_CPU)
 fi
 
+dnl Support AVX512 instructions
+
+AC_COMPILE_IFELSE([
+    #ifndef __AVX512F__
+    #error
+    #endif
+             ], [cpu_supports_avx512="yes"], [cpu_supports_avx512="no"])
+
+
+AC_ARG_ENABLE([avx512], 
+        AS_HELP_STRING([--disable-avx512],
+                [Do not check whether AVX512 is enabled]),
+          [check_avx512=no],
+          [check_avx512=yes])
+
+AC_MSG_CHECKING([if AVX512 should be used])
+if test "x$cpu_supports_avx512$check_avx512" = "xyesyes"; then
+    AC_MSG_RESULT([yes])
+    AC_DEFINE([HAVE_AVX512],1)
+    save_cflags="$CFLAGS"
+    CFLAGS="$save_cflags -mavx512f"
+    save_cxxflags="$CXXFLAGS"
+    CXXFLAGS="$save_cxxflags -mavx512f"
+else
+    AC_MSG_RESULT([no])
+fi
+
 dnl Support AVX2 instructions
 
 AC_COMPILE_IFELSE([
