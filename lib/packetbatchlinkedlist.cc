@@ -1,6 +1,6 @@
-// -*- related-file-name: "../include/click/packetbatch.hh" -*-
+// -*- related-file-name: "../include/click/packetbatchlinkedlist.hh" -*-
 /*
- * packetbatch.{cc,hh} -- a batch of packet
+ * packetbatchLinkedList.{cc,hh} -- a batch of packet, using a linked list
  * Tom Barbette
  *
  * Copyright (c) 2015-2016 University of Liege
@@ -17,7 +17,7 @@
  */
 
 #include <click/config.h>
-#include <click/packetbatch.hh>
+#include <click/packetbatchlinkedlist.hh>
 #include <click/netmapdevice.hh>
 #if HAVE_DPDK_PACKET_POOL
 # include <click/dpdkdevice.hh>
@@ -36,25 +36,25 @@ CLICK_DECLS
  * If you are iterating over all packets, consider doing the same than this
  *  function directly to avoid dual iteration.
  */
-void PacketBatch::fast_kill() {
-    BATCH_RECYCLE_START();
-    FOR_EACH_PACKET_SAFE(this,up) {
+void PacketBatchLinkedList::fast_kill() {
+    BATCH_RECYCLE_START_LL();
+    FOR_EACH_PACKET_SAFE_LL(first(),up) {
         WritablePacket* p = static_cast<WritablePacket*>(up);
-        BATCH_RECYCLE_PACKET(p);
+        BATCH_RECYCLE_PACKET_LL(p);
     }
-    BATCH_RECYCLE_END();
+    BATCH_RECYCLE_END_LL();
 }
 
 /**
  * Recycle a whole batch, faster in most cases than a loop of kill_nonatomic
  */
-void PacketBatch::fast_kill_nonatomic() {
-    BATCH_RECYCLE_START();
-    FOR_EACH_PACKET_SAFE(this,up) {
+void PacketBatchLinkedList::fast_kill_nonatomic() {
+    BATCH_RECYCLE_START_LL();
+    FOR_EACH_PACKET_SAFE_LL(first(),up) {
         WritablePacket* p = static_cast<WritablePacket*>(up);
-        BATCH_RECYCLE_PACKET_NONATOMIC(p);
+        BATCH_RECYCLE_PACKET_NONATOMIC_LL(p);
     }
-    BATCH_RECYCLE_END();
+    BATCH_RECYCLE_END_LL();
 }
 # endif
 
@@ -68,8 +68,8 @@ void PacketBatch::fast_kill_nonatomic() {
  * @return new packet batch, or null if no packet could be created
  *
  **/
-PacketBatch *
-PacketBatch::make_batch(unsigned char *data, uint16_t count, uint16_t *length,
+PacketBatchLinkedList *
+PacketBatchLinkedList::make_batch(unsigned char *data, uint16_t count, uint16_t *length,
         Packet::buffer_destructor_type destructor, void* argument, bool clean)
 {
 #if CLICK_PACKET_USE_DPDK
@@ -107,7 +107,7 @@ PacketBatch::make_batch(unsigned char *data, uint16_t count, uint16_t *length,
     if (fcb_stack)
         fcb_stack->acquire(count);
 #endif
-    return PacketBatch::make_from_simple_list(head, last, i);
+    return PacketBatchLinkedList::make_from_simple_list(head, last, i);
 #endif
 }
 

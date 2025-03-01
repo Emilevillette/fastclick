@@ -84,6 +84,10 @@ void FullNoteQueue::push_batch(int port, PacketBatch* batch) {
     FOR_EACH_PACKET_SAFE(batch,p) {
         FullNoteQueue::push(port,p);
     }
+    //!
+#if HAVE_VECTOR
+    batch->soft_kill();
+#endif
 }
 
 PacketBatch* FullNoteQueue::pull_batch(int port, unsigned max) {

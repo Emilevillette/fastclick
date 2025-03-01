@@ -31,6 +31,10 @@ autobatch:
     extends: .common
     script:
         - ./configure $CONFIG_HOST CXXFLAGS="-std=gnu++11" --enable-batch $CONFIG --disable-verbose-batch --enable-auto-batch=port && make && make check
+vectorbatch:
+    extends: .common
+    script:
+        - ./configure $CONFIG_HOST CXXFLAGS="-std=gnu++11" --enable-batch $CONFIG --disable-verbose-batch --enable-vector && make && make check
 ip6:
     extends: .common
     script:

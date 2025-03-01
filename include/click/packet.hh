@@ -50,7 +50,14 @@ CLICK_DECLS
 
 class IP6Address;
 class WritablePacket;
-class PacketBatch;
+class PacketBatchVector;
+class PacketBatchLinkedList;
+#if HAVE_VECTOR
+    typedef PacketBatchVector PacketBatch;
+#else
+    typedef PacketBatchLinkedList PacketBatch;
+#endif
+
 #if HAVE_DPDK
 class FromDPDKDevice;
 class DPDKDevice;
@@ -941,7 +948,8 @@ private:
     WritablePacket *expensive_put(uint32_t nbytes) CLICK_WARN_UNUSED_RESULT;
 
     friend class WritablePacket;
-    friend class PacketBatch;
+    friend class PacketBatchVector;
+    friend class PacketBatchLinkedList;
 #if HAVE_DPDK
     friend class DPDKDevice;
 #endif
@@ -1074,7 +1082,8 @@ class WritablePacket : public Packet { public:
 #endif
 
     friend class Packet;
-    friend class PacketBatch;
+    friend class PacketBatchVector;
+    friend class PacketBatchLinkedList;
     friend class NetmapDevice;
     friend class FromDPDKDevice;
 
