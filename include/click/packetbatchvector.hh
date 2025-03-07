@@ -532,7 +532,7 @@ public :
      *
      * @param pos The position of the packet to remove
      */
-    void pop_at(unsigned int pos) {
+    inline void pop_at(unsigned int pos) {
         packets[pos] = nullptr;
         batch_size--;
     }

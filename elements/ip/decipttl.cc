@@ -25,6 +25,8 @@
 #include <click/glue.hh>
 #include <click/args.hh>
 #include <clicknet/ip.h>
+
+#include <immintrin.h>
 CLICK_DECLS
 
 DecIPTTL::DecIPTTL()
@@ -80,13 +82,42 @@ DecIPTTL::simple_action(Packet *p)
     }
 }
 
+
 #if HAVE_BATCH
 PacketBatch *
 DecIPTTL::simple_action_batch(PacketBatch *batch)
 {
+  #if HAVE_AVX512
+	simple_action_avx(batch, [](Packet *){});
+  #else
     EXECUTE_FOR_EACH_PACKET_DROPPABLE(DecIPTTL::simple_action, batch, [](Packet *){});
+  #endif
     return batch;
 }
+#endif
+
+#if HAVE_AVX512
+void simple_action_avx(PacketBatch *batch, std::function<void(Packet *)> on_drop) {
+    Packet *p = batch->first();
+    int count = batch->count();
+    int revised_count = batch->count();
+    int current_pos = 0;
+    for(int i = 0; i < count; i++, p=batch->at(i)){
+        Packet *q = DecIPTTL::simple_action(p);
+        if (q == 0) {
+            on_drop(p);
+            revised_count--;
+        } else if (q != p) {
+            batch->set_at(current_pos, q);
+            current_pos++;
+        }
+    }
+    for(int i = revised_count; i < count; i++) {
+        batch->pop_at(i);
+    }
+    CLICK_CHATTER("Dropped %d packets", count - revised_count);
+}
+
 #endif
 
 void
