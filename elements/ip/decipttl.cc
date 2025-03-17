@@ -128,7 +128,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         // Decrement the TTL
         //__m256i ttl = _mm256_loadu_si256((__m256i *) dst_ttl);
-        __m512i ttl = _mm512_slli_epi32(indices, _mm512_i32gather_epi32((int const*)((char*)batch->at(iter)), 1), 24);
+        __m512i ttl = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter)), 1), 24);
 		__m512i ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 16)), 1), 16);
         ttl = _mm512_or_si512(ttl, ttl2);
 
