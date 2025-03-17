@@ -371,6 +371,7 @@ public :
      */
     inline static PacketBatchVector * make_packet_batch_from_pool() {
         PacketBatchVector* b = batch_pool->getMemory();
+        click_chatter("GET MEMORY, current alloc: %u, max alloc: %u, alloc count: %u, current cpu: %u", batch_pool->current_alloc, batch_pool->max_alloc, batch_pool->alloc_count, click_current_cpu_id());
         return b;
     }
 

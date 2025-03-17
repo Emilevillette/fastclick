@@ -20,6 +20,10 @@ class MemoryPool
 {
     int const DEFAULT_ALLOC = 1024;
 public:
+
+    unsigned max_alloc = 0;
+    unsigned current_alloc = 0;
+    unsigned alloc_count = 0;
     /** @brief Construct an empty MemoryPool
      */
     MemoryPool()
@@ -85,6 +89,8 @@ public:
 
         first = node->next;
 
+        current_alloc++;
+        alloc_count++;
         return (T*)node;
     }
 
@@ -95,6 +101,8 @@ public:
     {
         ((MemoryPoolNode*)p)->next = first;
         first = (MemoryPoolNode*)p;
+        current_alloc--;
+        click_chatter("RELEASE MEMORY, current alloc: %u, max alloc: %u, alloc count: %u, current cpu: %u", current_alloc, max_alloc, alloc_count, click_current_cpu_id());
     }
 
 private:
@@ -132,6 +140,9 @@ private:
             node->next = first;
             first = node;
         }
+
+        if(max_alloc + size > max_alloc)
+            max_alloc += size;
     }
 
     MemoryPoolNode* first; /** Pointer to the first element in the pool.
