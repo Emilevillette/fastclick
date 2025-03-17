@@ -533,8 +533,32 @@ public :
      * @param pos The position of the packet to remove
      */
     inline void pop_at(unsigned int pos) {
+        if(pos >= count()) {
+            click_chatter("Error: PacketBatchVector::pop_at_safe: pos %u is bigger than size of batch %u", pos, count());
+            return;
+        }
         packets[pos] = nullptr;
         batch_size--;
+    }
+
+    /**
+     * Remove the packet at the given position. This shifts the remaning packets to the left.
+     *
+	 * Warning: this is an expensive operation, use with caution.
+     * @param pos The position of the packet to remove
+     */
+    inline void pop_at_safe(unsigned int pos) {
+        if(pos >= count()) {
+            click_chatter("Error: PacketBatchVector::pop_at_safe: pos %u is bigger than size of batch %u", pos, count());
+            return;
+        }
+        batch_size--;
+        // Shift the remaining packets to the left
+        for(unsigned int i = pos; i < count(); i++) {
+            packets[i] = packets[i+1];
+        }
+        // pop the last packet
+        packets[count()] = nullptr;
     }
 
     /**
