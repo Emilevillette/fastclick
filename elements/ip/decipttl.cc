@@ -112,8 +112,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
     int count = batch->count();
 
-    PacketBatch *new_batch = PacketBatch::make_packet_batch_from_pool();
-
     uint8_t dst_ttl[16] = {0};
     uint16_t dst_checksum[16] = {0};
 
@@ -288,11 +286,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srl_epi32(checksum2,16), _mm512_set1_epi32(0xFFFF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 48)), mask_multicast4, indices, gathered, 1);
     }
-
-    // Replace the pointer reference to the new batch and soft kill (i.e. release packet pointers) the old batch
-    PacketBatch *old_batch = batch;
-    batch = new_batch;
-    old_batch->soft_kill();
 
 }
 
