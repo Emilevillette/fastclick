@@ -86,6 +86,9 @@
 /* Define if right shift of signed integers acts by sign extension. */
 #undef HAVE_ARITHMETIC_RIGHT_SHIFT
 
+/* Define if AVX512 instruction is available */
+#undef HAVE_AVX512
+
 /* Define if AVX2 instruction is available. */
 #undef HAVE_AVX2
 
