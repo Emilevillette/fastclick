@@ -306,6 +306,7 @@ class PacketBatchVector {
 
 //Consider a batch size bigger as bogus (prevent infinite loop on bad pointer manipulation)
 #define MAX_BATCH_SIZE 8192
+#define BATCH_GARBAGE_OFFSET 64
 
 private:
     Packet* packets[MAX_BATCH_SIZE] = {nullptr};
@@ -313,6 +314,10 @@ private:
     static per_thread<MemoryPool<PacketBatchVector>> batch_pool;
 
 public :
+
+	PacketBatchVector() {
+		packets[MAX_BATCH_SIZE - BATCH_GARBAGE_OFFSET] = (Packet*)0xdeadbeef;
+	}
 
     /**
      * Return the first packet of the batch
@@ -343,7 +348,14 @@ public :
      * @return The packet at position pos
      */
     inline Packet* at(unsigned int pos) {
-        return packets[pos];
+        if (pos >= MAX_BATCH_SIZE) {
+            click_chatter("Error: PacketBatchVector::at: pos %u is bigger than MAX_BATCH_SIZE %u", pos, MAX_BATCH_SIZE);
+            return nullptr;
+        }
+		if(packets[pos] == nullptr) {
+			return packets[MAX_BATCH_SIZE - BATCH_GARBAGE_OFFSET];
+		}
+		return packets[pos];
     }
 
     /**
