@@ -103,7 +103,7 @@ DecIPTTL::simple_action_batch(PacketBatch *batch)
 #define PACKET_LENGTH 408
 #define IP_DST_OFFSET 384
 
-static inline void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet *)> on_drop) {
+void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet *)> on_drop) {
 
   // If the element is not active, return, batch is not modified
     if(!_active) {
