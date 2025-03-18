@@ -103,7 +103,7 @@ DecIPTTL::simple_action_batch(PacketBatch *batch)
 #define PACKET_LENGTH 408
 #define IP_DST_OFFSET 384
 
-void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet *)> on_drop) {
+static inline void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet *)> on_drop) {
 
   // If the element is not active, return, batch is not modified
     if(!_active) {
@@ -141,7 +141,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         __m512i one = _mm512_set1_epi8(1);
         ttl = _mm512_sub_epi8 (ttl, one);
 
-        // Mask The TTL to drop packets with TTL <= 1
+        // Mask The TTL to drop packets with TTL > 1
         __mmask64 mask = _mm512_cmpgt_epu8_mask(ttl, one);
 
         // Mask for multicast packets
@@ -203,21 +203,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(ttl,24), _mm512_set1_epi32(0x00FF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 48)), mask_multicast4, indices, gathered, 1);
 
-        // check if the mask is equal to a vector of 1, then all the packets have TTL > 1.
-        // If not, we need to check the TTL of each packet, and drop the ones with TTL <= 1
-        if(mask != 0xFFFFFFFFFFFFFFFFULL) {
-        	// there are packets to drop !!
-            for(int i = 0; i < 64; i++) {
-            	if((mask & (1 << i)) == 0) {
-            		// drop the packet
-                    ++_drops;
-					checked_output_push(1, batch->at(iter + i));
-            		on_drop(batch->at(iter + i));
-                    batch->pop_at_safe(iter + i);
-            	}
-            }
-        }
-
         indices = _mm512_set_epi32(15*PACKET_LENGTH + CHECKSUM_OFFSET, 14*PACKET_LENGTH + CHECKSUM_OFFSET,
                                    13*PACKET_LENGTH + CHECKSUM_OFFSET, 12*PACKET_LENGTH + CHECKSUM_OFFSET,
                                    11*PACKET_LENGTH + CHECKSUM_OFFSET, 10*PACKET_LENGTH + CHECKSUM_OFFSET,
@@ -254,7 +239,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
 
         // Calculate the new checksum
-        //__m512i sum = _mm512_loadu_si512((__m512i *) dst_checksum);
         __m512i ffff = _mm512_set1_epi16(0xFFFF);
         __m512i feff = _mm512_set1_epi16(0xFEFF);
         checksum = _mm512_and_si512(checksum, ffff);
@@ -289,6 +273,23 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         gathered = _mm512_and_si512(_mm512_set1_epi32(0xFF00), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 48)), 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(checksum2,16), _mm512_set1_epi32(0xFFFF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 48)), mask_multicast4, indices, gathered, 1);
+
+        // check if the mask is equal to a vector of 1, then all the packets have TTL > 1.
+        // If not, we need to check the TTL of each packet, and drop the ones with TTL <= 1
+        if(mask != 0xFFFFFFFFFFFFFFFFULL) {
+        	// there are packets to drop !!
+            int n_drops = 0;
+            for(int i = 0; i < 64; i++) {
+            	if((mask & (1 << i)) == 0) {
+            		// drop the packet
+                    ++_drops;
+					checked_output_push(1, batch->at(iter + i - n_drops));
+            		on_drop(batch->at(iter + i - n_drops));
+                    batch->pop_at_safe(iter + i - n_drops);
+                    n_drops++;
+            	}
+            }
+        }
     }
 
 }
