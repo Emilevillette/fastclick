@@ -186,20 +186,20 @@ static inline void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::functi
         }
 
         // Store the new TTL
-        __m512i gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFFF0), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter)), 1));
+        __m512i gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFF00), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter)), 1));
 		gathered = _mm512_or_si512(gathered, _mm512_and_si512(ttl, _mm512_set1_epi32(0x00FF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter)), mask_multicast, indices, gathered, 1);
 
         //repeat for the rest of the packets
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFFF0), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 16)), 1));
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFF00), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 16)), 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(ttl,8), _mm512_set1_epi32(0x00FF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 16)), mask_multicast2, indices, gathered, 1);
 
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFFF0), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 32)), 1));
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFF00), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 32)), 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(ttl,16), _mm512_set1_epi32(0x00FF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 32)), mask_multicast3, indices, gathered, 1);
 
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFFF0), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 48)), 1));
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFF00), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 48)), 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(ttl,24), _mm512_set1_epi32(0x00FF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 48)), mask_multicast4, indices, gathered, 1);
 
@@ -258,19 +258,19 @@ static inline void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::functi
         checksum2 = _mm512_xor_si512(checksum2, _mm512_set1_epi32(0xFFFFFFFF));
 
         // also store similar to the TTL
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFF00), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter)), 1));
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter)), 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(checksum, _mm512_set1_epi32(0xFFFF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter)), mask_multicast, indices, gathered, 1);
 
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFF00), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 16)), 1));
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 16)), 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(checksum,16), _mm512_set1_epi32(0xFFFF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 16)), mask_multicast2, indices, gathered, 1);
 
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFF00), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 32)), 1));
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 32)), 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(checksum2, _mm512_set1_epi32(0xFFFF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 32)), mask_multicast3, indices, gathered, 1);
 
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFF00), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 48)), 1));
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 48)), 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(checksum2,16), _mm512_set1_epi32(0xFFFF)));
         _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 48)), mask_multicast4, indices, gathered, 1);
 
