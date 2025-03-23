@@ -129,10 +129,14 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
 		Packet **addr = batch->at_range(iter, 16, TTL_OFFSET);
 
+        /*
         __m512i indices = _mm512_set_epi32(addr[15], addr[14], addr[13], addr[12],
                                            addr[11], addr[10], addr[9], addr[8],
                                            addr[7], addr[6], addr[5], addr[4],
                                            addr[3], addr[2], addr[1], addr[0]);
+		*/
+
+        __m512i indices = _mm512_loadu_si512((__m512i*)addr);
 
         // Decrement the TTL
         __m512i ttl = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 24);
