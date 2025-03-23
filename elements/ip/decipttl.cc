@@ -127,7 +127,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
                                            1*PACKET_LENGTH + TTL_OFFSET, TTL_OFFSET);
 		*/
 
-		Packet **addr = batch->at_range(iter, 16, TTL_OFFSET);
+		alignas (32) Packet **addr = batch->at_range(iter, 16, TTL_OFFSET);
 
         /*
         __m512i indices = _mm512_set_epi32(addr[15], addr[14], addr[13], addr[12],
@@ -136,17 +136,19 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
                                            addr[3], addr[2], addr[1], addr[0]);
 		*/
 
-        //__m512i indices = _mm512_loadu_si512((__m512i*)addr);
+        __m512i indices = _mm512_loadu_si512((__m512i*)addr);
+        /*
         __m512i indices = _mm512_set_epi32((int)addr[15], (int)addr[14], (int)addr[13], (int)addr[12],
                                            (int)addr[11], (int)addr[10], (int)addr[9], (int)addr[8],
                                            (int)addr[7], (int)addr[6], (int)addr[5], (int)addr[4],
                                            (int)addr[3], (int)addr[2], (int)addr[1], (int)addr[0]);
-		//print the first address
+		*/
         click_chatter("Address: %p", addr[0]);
 
         // Decrement the TTL
-        __m512i ttl = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 24);
-		__m512i ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 16);
+        __m512i ttl = _mm512_slli_epi64(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 24);
+		/*
+        __m512i ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 16);
         ttl = _mm512_or_si512(ttl, ttl2);
 
 		ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 8);
@@ -158,7 +160,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         __m512i one = _mm512_set1_epi8(1);
         ttl = _mm512_sub_epi8 (ttl, one);
 
-        /*
+
         // Mask The TTL to drop packets with TTL > 1
         __mmask64 mask = _mm512_cmpgt_epu8_mask(ttl, one);
 
