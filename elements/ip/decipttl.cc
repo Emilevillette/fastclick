@@ -117,7 +117,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
     // Since we are working with a checksum of 16 bits, we have 256/16 = 16 packets per iteration
     for(int iter = 0; iter < count; iter = iter + 64) {
-        __m512i indices = _mm512_set_epi32(15*PACKET_LENGTH + TTL_OFFSET, 14*PACKET_LENGTH + TTL_OFFSET,
+        /*__m512i indices = _mm512_set_epi32(15*PACKET_LENGTH + TTL_OFFSET, 14*PACKET_LENGTH + TTL_OFFSET,
                                            13*PACKET_LENGTH + TTL_OFFSET, 12*PACKET_LENGTH + TTL_OFFSET,
 										   11*PACKET_LENGTH + TTL_OFFSET, 10*PACKET_LENGTH + TTL_OFFSET,
                                            9*PACKET_LENGTH + TTL_OFFSET, 8*PACKET_LENGTH + TTL_OFFSET,
@@ -125,21 +125,30 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
                                            5*PACKET_LENGTH + TTL_OFFSET, 4*PACKET_LENGTH + TTL_OFFSET,
                                            3*PACKET_LENGTH + TTL_OFFSET, 2*PACKET_LENGTH + TTL_OFFSET,
                                            1*PACKET_LENGTH + TTL_OFFSET, TTL_OFFSET);
+		*/
+
+		Packet **addr = batch->at_range(iter, 16, TTL_OFFSET);
+
+        __m512i indices = _mm512_set_epi32(addr[15], addr[14], addr[13], addr[12],
+                                           addr[11], addr[10], addr[9], addr[8],
+                                           addr[7], addr[6], addr[5], addr[4],
+                                           addr[3], addr[2], addr[1], addr[0]);
 
         // Decrement the TTL
-        __m512i ttl = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter)), 1), 24);
-		__m512i ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 16)), 1), 16);
+        __m512i ttl = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 24);
+		__m512i ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 16);
         ttl = _mm512_or_si512(ttl, ttl2);
 
-		ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 32)), 1), 8);
+		ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 8);
 
-        __m512i ttl3 = _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 48)), 1);
+        __m512i ttl3 = _mm512_i32gather_epi32(indices, (int const*)nullptr, 1);
         ttl2 = _mm512_or_si512(ttl2, ttl3);
         ttl = _mm512_or_si512(ttl, ttl2);
 
         __m512i one = _mm512_set1_epi8(1);
         ttl = _mm512_sub_epi8 (ttl, one);
 
+        /*
         // Mask The TTL to drop packets with TTL > 1
         __mmask64 mask = _mm512_cmpgt_epu8_mask(ttl, one);
 
@@ -289,6 +298,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
             	}
             }
         }
+        */
     }
 
 }

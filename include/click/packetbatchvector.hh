@@ -309,7 +309,7 @@ class PacketBatchVector {
 #define BATCH_GARBAGE_OFFSET 64
 
 private:
-    Packet* packets[MAX_BATCH_SIZE] = {nullptr};
+    Packet* packets[MAX_BATCH_SIZE] = {(Packet*)(0xdeadbeef)};
     int batch_size = 0;
     static per_thread<MemoryPool<PacketBatchVector>> batch_pool;
 
@@ -352,11 +352,28 @@ public :
             click_chatter("Error: PacketBatchVector::at: pos %u is bigger than MAX_BATCH_SIZE %u", pos, MAX_BATCH_SIZE);
             return nullptr;
         }
-		if(packets[pos] == nullptr) {
+		if(pos >= count()) {
 			return packets[MAX_BATCH_SIZE - BATCH_GARBAGE_OFFSET];
 		}
 		return packets[pos];
     }
+
+    inline Packet** at_range(unsigned int pos, unsigned int count, unsigned int offset) {
+        if (pos >= MAX_BATCH_SIZE) {
+            click_chatter("Error: PacketBatchVector::at: pos %u is bigger than MAX_BATCH_SIZE %u", pos, MAX_BATCH_SIZE);
+            return nullptr;
+        }
+        Packet** p;
+        for(unsigned int i = 0; i < count; i++) {
+            p[i] = at(pos + i) + offset;
+        }
+        return p;
+	}
+
+    inline Packet** at_range(unsigned int pos, unsigned int count) {
+        return at_range(pos, count, 0);
+    }
+
 
     /**
      * set the packet p at position pos
