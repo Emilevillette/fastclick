@@ -138,7 +138,15 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         __m512i indices = _mm512_loadu_si512((__m512i*)addr);
         // compare the values in indices with TTL_OFFSET, if they are equal, set the corresponding bit to 0, we will gather with this mask
-        __mmask16 mask = _mm512_cmpeq_epi32_mask(indices, _mm512_set1_epi32(TTL_OFFSET));
+        __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(TTL_OFFSET));
+	mask = 1000000000000000;
+
+    printf("Mask: 0b");
+    for (int i = 15; i >= 0; i--) {  // Print from MSB to LSB
+        printf("%d", (mask >> i) & 1);
+    }
+    printf("\n");
+
 
         /*
         __m512i indices = _mm512_set_epi32((int)addr[15], (int)addr[14], (int)addr[13], (int)addr[12],
@@ -146,10 +154,11 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
                                            (int)addr[7], (int)addr[6], (int)addr[5], (int)addr[4],
                                            (int)addr[3], (int)addr[2], (int)addr[1], (int)addr[0]);
 		*/
-        click_chatter("Address: %p", addr[0]);
+        click_chatter("Addresses: %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], addr[6], addr[7], addr[8], addr[9], addr[10], addr[11], addr[12], addr[13], addr[14], addr[15]);
+
 
         // Decrement the TTL
-        __m512i ttl = _mm512_slli_epi64(_mm512_mask_i32gather_epi32((__m512i) nullptr, mask, indices, (int const*) nullptr, 1), 24);
+        __m512i ttl = _mm512_slli_epi64(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, (int const*) nullptr, 1), 24);
 		/*
         __m512i ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 16);
         ttl = _mm512_or_si512(ttl, ttl2);
