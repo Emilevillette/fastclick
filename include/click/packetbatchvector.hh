@@ -6,7 +6,6 @@
 #include <click/vector.hh>
 #include <click/packet.hh>
 #include <click/memorypool.hh>
-#include <click/dpdkdevice.hh>
 CLICK_DECLS
 
 #define BATCH_POOL_INITIAL_SIZE 512
@@ -331,6 +330,7 @@ public :
     rte_mempool* get_pool_base_pointer() {
         return pool_base_pointer;
     }
+    #endif
 
     /**
      * Return the first packet of the batch
