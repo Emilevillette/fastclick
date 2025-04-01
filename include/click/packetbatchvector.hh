@@ -368,23 +368,17 @@ public :
 		return packets[pos];
     }
 
-    // Return the packet at poition pos
     #if CLICK_PACKET_USE_DPDK
-    inline Packet** at_range_offset(unsigned int pos, unsigned int count, unsigned int offset) {
+    inline int32_t at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count) {
         if (pos >= MAX_BATCH_SIZE) {
             click_chatter("Error: PacketBatchVector::at: pos %u is bigger than MAX_BATCH_SIZE %u", pos, MAX_BATCH_SIZE);
             return nullptr;
         }
-        Packet** p;
         for(unsigned int i = 0; i < count; i++) {
-            p[i] = at(pos + i) - pool_base_pointer;
+            offsets[i] = (char *)at(pos + i) - (char *)pool_base_pointer;
         }
         return p;
 	}
-
-    inline Packet** at_range_offset(unsigned int pos, unsigned int count) {
-        return at_range_offset(pos, count, 0);
-    }
     #endif
 
 

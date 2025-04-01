@@ -127,7 +127,8 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
                                            1*PACKET_LENGTH + TTL_OFFSET, TTL_OFFSET);
 		*/
 
-		Packet **addr = batch->at_range(iter, 16, TTL_OFFSET);
+        int32_t offsets[16];
+		batch->at_range_offset(offsets, iter, 16);
 
         /*
         __m512i indices = _mm512_set_epi32(addr[15], addr[14], addr[13], addr[12],
@@ -136,7 +137,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
                                            addr[3], addr[2], addr[1], addr[0]);
 		*/
 
-        __m512i indices = _mm512_loadu_si512((__m512i*)addr);
+        __m512i indices = _mm512_loadu_si512((__m512i*)offsets);
         // compare the values in indices with TTL_OFFSET, if they are equal, set the corresponding bit to 0, we will gather with this mask
         __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(TTL_OFFSET));
 		mask = 1000000000000000;
