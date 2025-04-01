@@ -87,7 +87,7 @@ DecIPTTL::simple_action(Packet *p)
 PacketBatch *
 DecIPTTL::simple_action_batch(PacketBatch *batch)
 {
-  #if HAVE_AVX512 && HAVE_VECTOR
+  #if HAVE_AVX512 && HAVE_VECTOR && CLICK_PACKET_USE_DPDK
 	simple_action_avx(batch, [](Packet *){});
   #else
     EXECUTE_FOR_EACH_PACKET_DROPPABLE(DecIPTTL::simple_action, batch, [](Packet *){});
@@ -96,7 +96,7 @@ DecIPTTL::simple_action_batch(PacketBatch *batch)
 }
 #endif
 
-#if HAVE_AVX512 && HAVE_VECTOR
+#if HAVE_AVX512 && HAVE_VECTOR && CLICK_PACKET_USE_DPDK
 
 #define TTL_OFFSET 386
 #define CHECKSUM_OFFSET 378
@@ -127,7 +127,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
                                            1*PACKET_LENGTH + TTL_OFFSET, TTL_OFFSET);
 		*/
 
-		alignas (32) Packet **addr = batch->at_range(iter, 16, TTL_OFFSET);
+		Packet **addr = batch->at_range(iter, 16, TTL_OFFSET);
 
         /*
         __m512i indices = _mm512_set_epi32(addr[15], addr[14], addr[13], addr[12],
@@ -139,13 +139,13 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         __m512i indices = _mm512_loadu_si512((__m512i*)addr);
         // compare the values in indices with TTL_OFFSET, if they are equal, set the corresponding bit to 0, we will gather with this mask
         __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(TTL_OFFSET));
-	mask = 1000000000000000;
+		mask = 1000000000000000;
 
-    printf("Mask: 0b");
-    for (int i = 15; i >= 0; i--) {  // Print from MSB to LSB
-        printf("%d", (mask >> i) & 1);
-    }
-    printf("\n");
+	    printf("Mask: 0b");
+	    for (int i = 15; i >= 0; i--) {  // Print from MSB to LSB
+	        printf("%d", (mask >> i) & 1);
+	    }
+	    printf("\n");
 
 
         /*
@@ -158,7 +158,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
 
         // Decrement the TTL
-        __m512i ttl = _mm512_slli_epi64(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, (int const*) nullptr, 1), 24);
+        __m512i ttl = _mm512_slli_epi64(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, (int const*) batch->get_pool_base_pointer(), 1), 24);
 		/*
         __m512i ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 16);
         ttl = _mm512_or_si512(ttl, ttl2);

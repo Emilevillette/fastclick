@@ -6,6 +6,7 @@
 #include <click/vector.hh>
 #include <click/packet.hh>
 #include <click/memorypool.hh>
+#include <click/dpdkdevice.hh>
 CLICK_DECLS
 
 #define BATCH_POOL_INITIAL_SIZE 512
@@ -306,18 +307,30 @@ class PacketBatchVector {
 
 //Consider a batch size bigger as bogus (prevent infinite loop on bad pointer manipulation)
 #define MAX_BATCH_SIZE 8192
-#define BATCH_GARBAGE_OFFSET 64
 
 private:
-    Packet* packets[MAX_BATCH_SIZE] = {(Packet*)(0xdeadbeef)};
+    Packet* packets[MAX_BATCH_SIZE] = {nullptr};
     int batch_size = 0;
     static per_thread<MemoryPool<PacketBatchVector>> batch_pool;
 
+    // pointer to base pointer of _pktmbuf_pools
+    #if CLICK_PACKET_USE_DPDK
+  	rte_mempool* pool_base_pointer = nullptr;
+    #endif
+
 public :
 
-	PacketBatchVector() {
-		packets[MAX_BATCH_SIZE - BATCH_GARBAGE_OFFSET] = (Packet*)0xdeadbeef;
-	}
+  	#if CLICK_PACKET_USE_DPDK
+  	PacketBatchVector() {
+        click_chatter("PacketBatchVector constructor");
+        pool_base_pointer = DPDKDevice::get_mpool(0);
+    }
+    #endif
+
+    #if CLICK_PACKET_USE_DPDK
+    rte_mempool* get_pool_base_pointer() {
+        return pool_base_pointer;
+    }
 
     /**
      * Return the first packet of the batch
@@ -352,27 +365,27 @@ public :
             click_chatter("Error: PacketBatchVector::at: pos %u is bigger than MAX_BATCH_SIZE %u", pos, MAX_BATCH_SIZE);
             return nullptr;
         }
-		if(pos >= count()) {
-			return packets[MAX_BATCH_SIZE - BATCH_GARBAGE_OFFSET];
-		}
 		return packets[pos];
     }
 
-    inline Packet** at_range(unsigned int pos, unsigned int count, unsigned int offset) {
+    // Return the packet at poition pos
+    #if CLICK_PACKET_USE_DPDK
+    inline Packet** at_range_offset(unsigned int pos, unsigned int count, unsigned int offset) {
         if (pos >= MAX_BATCH_SIZE) {
             click_chatter("Error: PacketBatchVector::at: pos %u is bigger than MAX_BATCH_SIZE %u", pos, MAX_BATCH_SIZE);
             return nullptr;
         }
         Packet** p;
         for(unsigned int i = 0; i < count; i++) {
-            p[i] = at(pos + i) + offset;
+            p[i] = at(pos + i) - pool_base_pointer;
         }
         return p;
 	}
 
-    inline Packet** at_range(unsigned int pos, unsigned int count) {
-        return at_range(pos, count, 0);
+    inline Packet** at_range_offset(unsigned int pos, unsigned int count) {
+        return at_range_offset(pos, count, 0);
     }
+    #endif
 
 
     /**
