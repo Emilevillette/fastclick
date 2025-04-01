@@ -319,11 +319,14 @@ private:
 
 public :
 
-  	#if CLICK_PACKET_USE_DPDK
-  	PacketBatchVector() {
-        click_chatter("PacketBatchVector constructor");
-        pool_base_pointer = DPDKDevice::get_mpool(0);
+    PacketBatchVector() {
+        #if CLICK_PACKET_USE_DPDK
+        pool_base_pointer = init_pool_base_pointer();
+        #endif
     }
+
+    #if CLICK_PACKET_USE_DPDK
+     void init_pool_base_pointer();
     #endif
 
     #if CLICK_PACKET_USE_DPDK

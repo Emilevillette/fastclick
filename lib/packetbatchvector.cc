@@ -31,6 +31,14 @@ per_thread<MemoryPool<PacketBatchVector>> PacketBatchVector::batch_pool;
 
 # if HAVE_CLICK_PACKET_POOL
 
+#if CLICK_PACKET_USE_DPDK
+void PacketBatchVector::init_pool_base_pointer() {
+    click_chatter("PacketBatchVector constructor");
+    pool_base_pointer = DPDKDevice::get_mpool(0);
+}
+#endif
+
+
 /**
  * Recycle a whole batch, faster in most cases as it add batches to the pool in
  * two calls.
