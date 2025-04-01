@@ -369,15 +369,10 @@ public :
     }
 
     #if CLICK_PACKET_USE_DPDK
-    inline int32_t at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count) {
-        if (pos >= MAX_BATCH_SIZE) {
-            click_chatter("Error: PacketBatchVector::at: pos %u is bigger than MAX_BATCH_SIZE %u", pos, MAX_BATCH_SIZE);
-            return nullptr;
-        }
+    inline void at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count) {
         for(unsigned int i = 0; i < count; i++) {
             offsets[i] = (char *)at(pos + i) - (char *)pool_base_pointer;
         }
-        return p;
 	}
     #endif
 
