@@ -321,7 +321,7 @@ public :
 
     PacketBatchVector() {
         #if CLICK_PACKET_USE_DPDK
-        pool_base_pointer = init_pool_base_pointer();
+        init_pool_base_pointer();
         #endif
     }
 
