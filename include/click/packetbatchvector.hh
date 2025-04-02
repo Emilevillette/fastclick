@@ -312,28 +312,7 @@ private:
     int batch_size = 0;
     static per_thread<MemoryPool<PacketBatchVector>> batch_pool;
 
-    // pointer to base pointer of _pktmbuf_pools
-    #if CLICK_PACKET_USE_DPDK
-  	rte_mempool* pool_base_pointer = nullptr;
-    #endif
-
 public :
-
-    PacketBatchVector() {
-        #if CLICK_PACKET_USE_DPDK
-        init_pool_base_pointer();
-        #endif
-    }
-
-    #if CLICK_PACKET_USE_DPDK
-     void init_pool_base_pointer();
-    #endif
-
-    #if CLICK_PACKET_USE_DPDK
-    rte_mempool* get_pool_base_pointer() {
-        return pool_base_pointer;
-    }
-    #endif
 
     /**
      * Return the first packet of the batch
@@ -371,12 +350,17 @@ public :
 		return packets[pos];
     }
 
-    #if CLICK_PACKET_USE_DPDK
+    #if HAVE_DPDK_PACKET_POOL
+
+    /*
     inline void at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count) {
         for(unsigned int i = 0; i < count; i++) {
             offsets[i] = (char *)at(pos + i) - (char *)pool_base_pointer;
         }
 	}
+     */
+
+    inline void at_range_offset(int32_t offsets[16], unsigned int pos, unigned int count);
     #endif
 
 
