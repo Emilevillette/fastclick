@@ -27,17 +27,6 @@ per_thread<MemoryPool<PacketBatchVector>> PacketBatchVector::batch_pool;
 
 #if HAVE_BATCH
 
-#if HAVE_DPDK_PACKET_POOL
-void PacketBatchVector::at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count) {
-    click_chatter("at range");
-  	for(unsigned int i = 0; i < count; i++) {
-        offsets[i] = (char *)at(pos + i) - (char *)DPDKDevice::get_mpool(0);
-    }
-}
-#endif
-
-
-
 #if HAVE_CLICK_PACKET_POOL
 
 
