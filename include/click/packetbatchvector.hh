@@ -439,6 +439,13 @@ public :
             click_chatter("Error: PacketBatchVector::append_packet: batch is full, cannot append packet");
             return;
         }
+
+        #if CLICK_PACKET_USE_DPDK
+        if(pool_base_pointer == nullptr) {
+            click_chatter("pool_base_pointer is null, calling init");
+            init_pool_base_pointer();
+        }
+        #endif
         packets[count()] = p;
         batch_size++;
     }
