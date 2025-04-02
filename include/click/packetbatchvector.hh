@@ -351,18 +351,9 @@ public :
     }
 
     #if HAVE_DPDK_PACKET_POOL
-
-    /*
-    inline void at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count) {
-        for(unsigned int i = 0; i < count; i++) {
-            offsets[i] = (char *)at(pos + i) - (char *)pool_base_pointer;
-        }
-	}
-     */
-
     inline void at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count);
 
-    rte_mempool* get_pool_base_pointer();
+    inline rte_mempool* get_pool_base_pointer();
 	#endif
 
 

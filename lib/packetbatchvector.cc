@@ -39,7 +39,7 @@ void PacketBatchVector::at_range_offset(int32_t offsets[16], unsigned int pos, u
     }
 }
 
-rte_mempool* PacketBatchVector::get_pool_base_pointer() {
+inline rte_mempool* PacketBatchVector::get_pool_base_pointer() {
     return DPDKDevice::get_mpool(0);
 }
 #endif
