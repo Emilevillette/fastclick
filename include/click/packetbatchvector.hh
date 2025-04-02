@@ -361,7 +361,9 @@ public :
      */
 
     inline void at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count);
-    #endif
+
+    rte_mempool* get_pool_base_pointer();
+	#endif
 
 
     /**
