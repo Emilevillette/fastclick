@@ -350,12 +350,7 @@ public :
 		return packets[pos];
     }
 
-    #if HAVE_DPDK_PACKET_POOL
     inline void at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count);
-
-    inline rte_mempool* get_pool_base_pointer();
-	#endif
-
 
     /**
      * set the packet p at position pos

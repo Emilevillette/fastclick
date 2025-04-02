@@ -19,9 +19,7 @@
 #include <click/config.h>
 #include <click/packetbatchvector.hh>
 #include <click/netmapdevice.hh>
-#if HAVE_DPDK_PACKET_POOL
 # include <click/dpdkdevice.hh>
-#endif
 
 CLICK_DECLS
 
@@ -31,18 +29,15 @@ per_thread<MemoryPool<PacketBatchVector>> PacketBatchVector::batch_pool;
 
 #if HAVE_CLICK_PACKET_POOL
 
-#if HAVE_DPDK_PACKET_POOL
+
 void PacketBatchVector::at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count) {
+  	#if HAVE_DPDK_PACKET_POOL
     click_chatter("at range");
   	for(unsigned int i = 0; i < count; i++) {
         offsets[i] = (char *)at(pos + i) - (char *)DPDKDevice::get_mpool(0);
     }
+    #endif
 }
-
-inline rte_mempool* PacketBatchVector::get_pool_base_pointer() {
-    return DPDKDevice::get_mpool(0);
-}
-#endif
 
 
 /**

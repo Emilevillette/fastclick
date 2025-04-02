@@ -25,6 +25,7 @@
 #include <click/glue.hh>
 #include <click/args.hh>
 #include <clicknet/ip.h>
+#include <click/dpdkdevice.hh>
 
 #include <immintrin.h>
 CLICK_DECLS
@@ -157,10 +158,10 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		*/
         //click_chatter("Addresses: %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], addr[6], addr[7], addr[8], addr[9], addr[10], addr[11], addr[12], addr[13], addr[14], addr[15]);
 		click_chatter("offsets: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", offsets[0], offsets[1], offsets[2], offsets[3], offsets[4], offsets[5], offsets[6], offsets[7], offsets[8], offsets[9], offsets[10], offsets[11], offsets[12], offsets[13], offsets[14], offsets[15]);
-		click_chatter("base: %p", batch->get_pool_base_pointer());
+		click_chatter("base: %p", DPDKDevice::get_mpool(0));
 
         // Decrement the TTL
-        __m512i ttl = _mm512_slli_epi64(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, (int const*) batch->get_pool_base_pointer(), 1), 24);
+        __m512i ttl = _mm512_slli_epi64(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, DPDKDevice::get_mpool(0), 1), 24);
 		/*
         __m512i ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 16);
         ttl = _mm512_or_si512(ttl, ttl2);
