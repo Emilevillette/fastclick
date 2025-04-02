@@ -97,7 +97,7 @@ DecIPTTL::simple_action_batch(PacketBatch *batch)
 }
 #endif
 
-#if HAVE_AVX512 && HAVE_VECTOR && HAVE_DPDK_PACKET_POOL
+#if HAVE_BATCH && HAVE_AVX512 && HAVE_VECTOR && HAVE_DPDK_PACKET_POOL
 
 #define TTL_OFFSET 386
 #define CHECKSUM_OFFSET 378
