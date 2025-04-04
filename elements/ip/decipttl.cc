@@ -130,7 +130,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         __m512i indices = _mm512_loadu_si512((__m512i*)offsets);
         __m512i _mpool = _mm512_set1_epi32((uint64_t)mpool);
-		indices = _mm512_add_epi8(indices, _mm512_set1_epi8(TTL_OFFSET));
+		indices = _mm512_add_epi32(indices, _mm512_set1_epi32(TTL_OFFSET));
         indices = _mm512_sub_epi32(indices, _mpool);
 
         // compare the values in indices with 0, if they are equal, set the corresponding bit to 0, we will gather with this mask
@@ -155,7 +155,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         batch->at_range_offset(offsets, iter+16, 16);
 		__m512i indices2 = _mm512_loadu_si512((__m512i*)offsets);
         indices2 = _mm512_sub_epi32(indices2, _mpool);
-        indices2 = _mm512_add_epi8(indices2, _mm512_set1_epi8(TTL_OFFSET));
+        indices2 = _mm512_add_epi32(indices2, _mm512_set1_epi32(TTL_OFFSET));
         mask = _mm512_cmpneq_epi32_mask(indices2, _mm512_set1_epi32(0));
 
         __m512i ttl2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices2, mpool, 1), 16);
@@ -166,7 +166,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         batch->at_range_offset(offsets, iter+32, 16);
 		__m512i indices3 = _mm512_loadu_si512((__m512i*)offsets);
         indices3 = _mm512_sub_epi32(indices3, _mpool);
-        indices3 = _mm512_add_epi8(indices3, _mm512_set1_epi8(TTL_OFFSET));
+        indices3 = _mm512_add_epi32(indices3, _mm512_set1_epi32(TTL_OFFSET));
         mask = _mm512_cmpneq_epi32_mask(indices3, _mm512_set1_epi32(0));
 
         ttl2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices3, mpool, 1), 8);
@@ -177,7 +177,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		batch->at_range_offset(offsets, iter+48, 16);
 		__m512i indices4 = _mm512_loadu_si512((__m512i*)offsets);
         indices4 = _mm512_sub_epi32(indices4, _mpool);
-        indices4 = _mm512_add_epi8(indices4, _mm512_set1_epi8(TTL_OFFSET));
+        indices4 = _mm512_add_epi32(indices4, _mm512_set1_epi32(TTL_OFFSET));
         mask = _mm512_cmpneq_epi32_mask(indices4, _mm512_set1_epi32(0));
 
         ttl2 = _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices4, mpool, 1);
