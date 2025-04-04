@@ -134,6 +134,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         // compare the values in indices with 0, if they are equal, set the corresponding bit to 0, we will gather with this mask
         __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(0));
+		__mmask16 mask_multicast = mask;
 
 
         __m512i _mpool = _mm512_set1_epi32((uint64_t)mpool);
@@ -160,6 +161,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         batch->at_range_offset(offsets, iter+16, 16);
 		__m512i indices2 = _mm512_loadu_si512((__m512i*)offsets);
         mask = _mm512_cmpneq_epi32_mask(indices2, _mm512_set1_epi32(0));
+        __mmask16 mask_multicast2 = mask;
         indices2 = _mm512_sub_epi32(indices2, _mpool);
         indices2 = _mm512_add_epi32(indices2, _mm512_set1_epi32(TTL_OFFSET));
 
@@ -171,6 +173,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         batch->at_range_offset(offsets, iter+32, 16);
 		__m512i indices3 = _mm512_loadu_si512((__m512i*)offsets);
         mask = _mm512_cmpneq_epi32_mask(indices3, _mm512_set1_epi32(0));
+		__mmask16 mask_multicast3 = mask;
         indices3 = _mm512_sub_epi32(indices3, _mpool);
         indices3 = _mm512_add_epi32(indices3, _mm512_set1_epi32(TTL_OFFSET));
 
@@ -182,6 +185,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		batch->at_range_offset(offsets, iter+48, 16);
 		__m512i indices4 = _mm512_loadu_si512((__m512i*)offsets);
         mask = _mm512_cmpneq_epi32_mask(indices4, _mm512_set1_epi32(0));
+		__mmask16 mask_multicast4 = mask;
         indices4 = _mm512_sub_epi32(indices4, _mpool);
         indices4 = _mm512_add_epi32(indices4, _mm512_set1_epi32(TTL_OFFSET));
 
@@ -195,20 +199,13 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         // Mask The TTL to drop packets with TTL > 1
         __mmask64 drop_mask = _mm512_cmpgt_epu8_mask(ttl, one);
 
-        // Mask for multicast packets
+        // Mask for multicast packets, mask is 0xFFFF by default
         __m512i shuffle_mask;
-        __mmask16 mask_multicast;
-        __mmask16 mask_multicast2;
-        __mmask16 mask_multicast3;
-        __mmask16 mask_multicast4;
-        /*
         if(!_multicast) {
-			batch->at_range_offset(offsets, iter, 16);
-        	__m512i indices = _mm512_loadu_si512((__m512i*)offsets);
-            indices = _mm512_sub_epi32(indices, _mpool);
-			indices = _mm512_add_epi8(indices, _mm512_set1_epi8(IP_DST_OFFSET));
-
-            __m512i dst_ip = _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter)), 1);
+			indices = _mm512_add_epi8(_mm512_sub_epi8(indices, TTL_OFFSET), _mm512_set1_epi8(IP_DST_OFFSET));
+			indices2 = _mm512_add_epi8(_mm512_sub_epi8(indices2, TTL_OFFSET), _mm512_set1_epi8(IP_DST_OFFSET));
+			indices3 = _mm512_add_epi8(_mm512_sub_epi8(indices3, TTL_OFFSET), _mm512_set1_epi8(IP_DST_OFFSET));
+			indices4 = _mm512_add_epi8(_mm512_sub_epi8(indices4, TTL_OFFSET), _mm512_set1_epi8(IP_DST_OFFSET));
 
             shuffle_mask = _mm512_set_epi8(7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 23, 22, 21, 20, 19, 18, 17, 16, 31, 30, 29, 28, 27, 26, 25, 24, 39, 38, 37, 36, 35, 34, 33, 32, 47, 46, 45, 44, 43, 42, 41, 40, 55, 54, 53, 52, 51, 50, 49, 48, 63, 62, 61, 60, 59, 58, 57, 56);
 
@@ -219,17 +216,19 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 				E = _mm512_shuffle_epi8(E, shuffle_mask);
 			}
 
+            __m512i dst_ip = _mm512_i32gather_epi32(indices, mpool, 1);
+
 			mask_multicast = _mm512_cmpeq_epi32_mask(_mm512_and_si512(dst_ip, F), E);
 
-			dst_ip = _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 16)), 1);
+			dst_ip = _mm512_i32gather_epi32(indices2, mpool, 1);
 
 			mask_multicast2 = _mm512_cmpeq_epi32_mask(_mm512_and_si512(dst_ip, F), E);
 
-			dst_ip = _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 32)), 1);
+			dst_ip = _mm512_i32gather_epi32(indices3, mpool, 1);
 
 		    mask_multicast3 = _mm512_cmpeq_epi32_mask(_mm512_and_si512(dst_ip, F), E);
 
-            dst_ip = _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 48)), 1);
+            dst_ip = _mm512_i32gather_epi32(indices4, mpool, 1);
 
             mask_multicast4 = _mm512_cmpeq_epi32_mask(_mm512_and_si512(dst_ip, F), E);
         }
