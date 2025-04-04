@@ -1,5 +1,5 @@
 //FromDevice(eth0,1) -> c :: Classifier(12/0800,-);        // IP packets
-FromDPDKDevice(0, MAXTHREADS 1, MODE none) -> c :: Classifier(12/0800,-);        // IP packets
+FromDPDKDevice(0, MAXTHREADS 1, MODE none, VERBOSE 99) -> c :: Classifier(12/0800,-);        // IP packets
 
 c[0]
     -> EtherMirror()

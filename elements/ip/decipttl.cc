@@ -113,8 +113,10 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
     click_chatter("p %p\n", batch->at(0));
     click_chatter("ttl %p\n", &(batch->at(0)->ip_header()->ip_ttl));
+    click_chatter("TTL VALUE %d", batch->at(0)->ip_header()->ip_ttl);
     click_chatter("checksum %p\n", &(batch->at(0)->ip_header()->ip_sum));
     click_chatter("dst %p\n", &(batch->at(0)->ip_header()->ip_dst));
+
 
     int count = batch->count();
 
@@ -129,12 +131,15 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		batch->at_range_offset(offsets, iter, 16);
 
         __m512i indices = _mm512_loadu_si512((__m512i*)offsets);
+
+        // compare the values in indices with 0, if they are equal, set the corresponding bit to 0, we will gather with this mask
+        __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(0));
+
+
         __m512i _mpool = _mm512_set1_epi32((uint64_t)mpool);
 		indices = _mm512_add_epi32(indices, _mm512_set1_epi32(TTL_OFFSET));
         indices = _mm512_sub_epi32(indices, _mpool);
 
-        // compare the values in indices with 0, if they are equal, set the corresponding bit to 0, we will gather with this mask
-        __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(0));
 
 	    printf("Mask: 0b");
 	    for (int i = 15; i >= 0; i--) {  // Print from MSB to LSB
@@ -154,9 +159,9 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         batch->at_range_offset(offsets, iter+16, 16);
 		__m512i indices2 = _mm512_loadu_si512((__m512i*)offsets);
+        mask = _mm512_cmpneq_epi32_mask(indices2, _mm512_set1_epi32(0));
         indices2 = _mm512_sub_epi32(indices2, _mpool);
         indices2 = _mm512_add_epi32(indices2, _mm512_set1_epi32(TTL_OFFSET));
-        mask = _mm512_cmpneq_epi32_mask(indices2, _mm512_set1_epi32(0));
 
         __m512i ttl2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices2, mpool, 1), 16);
        	ttl2 = _mm512_and_si512(ttl2, ttl_mask);
@@ -165,9 +170,9 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         batch->at_range_offset(offsets, iter+32, 16);
 		__m512i indices3 = _mm512_loadu_si512((__m512i*)offsets);
+        mask = _mm512_cmpneq_epi32_mask(indices3, _mm512_set1_epi32(0));
         indices3 = _mm512_sub_epi32(indices3, _mpool);
         indices3 = _mm512_add_epi32(indices3, _mm512_set1_epi32(TTL_OFFSET));
-        mask = _mm512_cmpneq_epi32_mask(indices3, _mm512_set1_epi32(0));
 
         ttl2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices3, mpool, 1), 8);
         ttl2 = _mm512_and_si512(ttl2, ttl_mask);
@@ -176,9 +181,9 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
 		batch->at_range_offset(offsets, iter+48, 16);
 		__m512i indices4 = _mm512_loadu_si512((__m512i*)offsets);
+        mask = _mm512_cmpneq_epi32_mask(indices4, _mm512_set1_epi32(0));
         indices4 = _mm512_sub_epi32(indices4, _mpool);
         indices4 = _mm512_add_epi32(indices4, _mm512_set1_epi32(TTL_OFFSET));
-        mask = _mm512_cmpneq_epi32_mask(indices4, _mm512_set1_epi32(0));
 
         ttl2 = _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices4, mpool, 1);
         ttl2 = _mm512_and_si512(ttl2, ttl_mask);
@@ -234,6 +239,16 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         __m512i gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFF00), _mm512_i32gather_epi32(indices, mpool, 1));
 		gathered = _mm512_or_si512(gathered, _mm512_and_si512(ttl, _mm512_set1_epi32(0x00FF)));
         _mm512_mask_i32scatter_epi32(mpool, mask_multicast, indices, gathered, 1);
+
+        click_chatter("TTL VALUE AFTER %d", batch->at(0)->ip_header()->ip_ttl);
+
+    uint8_t* ptr = (uint8_t*)&ttl;
+    for (int i = 0; i < 64; i++) {
+        click_chatter("%d ", ptr[i]);
+    }
+
+
+
 
         /*
         //repeat for the rest of the packets
