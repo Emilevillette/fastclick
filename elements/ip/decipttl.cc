@@ -100,9 +100,9 @@ DecIPTTL::simple_action_batch(PacketBatch *batch)
 #if HAVE_BATCH && HAVE_AVX512 && HAVE_VECTOR && HAVE_DPDK_PACKET_POOL
 
 #define TTL_OFFSET 374
-#define CHECKSUM_OFFSET 378
+#define CHECKSUM_OFFSET 376
 #define PACKET_LENGTH 408
-#define IP_DST_OFFSET 384
+#define IP_DST_OFFSET 382
 
 void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet *)> on_drop) {
 
@@ -130,9 +130,11 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         __m512i indices = _mm512_loadu_si512((__m512i*)offsets);
         __m512i _mpool = _mm512_set1_epi32((uint64_t)mpool);
+
+        __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(0));
+
         indices = _mm512_sub_epi32(indices, _mpool);
         // compare the values in indices with 0, if they are equal, set the corresponding bit to 0, we will gather with this mask
-        __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(0));
 
 	    printf("Mask: 0b");
 	    for (int i = 15; i >= 0; i--) {  // Print from MSB to LSB
