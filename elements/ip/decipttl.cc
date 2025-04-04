@@ -232,7 +232,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
             mask_multicast4 = _mm512_cmpeq_epi32_mask(_mm512_and_si512(dst_ip, F), E);
         }
-         */
 
         // Store the new TTL
         __m512i gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFF00), _mm512_i32gather_epi32(indices, mpool, 1));
