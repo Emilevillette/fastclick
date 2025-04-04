@@ -99,7 +99,7 @@ DecIPTTL::simple_action_batch(PacketBatch *batch)
 
 #if HAVE_BATCH && HAVE_AVX512 && HAVE_VECTOR && HAVE_DPDK_PACKET_POOL
 
-#define TTL_OFFSET 386
+#define TTL_OFFSET 374
 #define CHECKSUM_OFFSET 378
 #define PACKET_LENGTH 408
 #define IP_DST_OFFSET 384
@@ -113,6 +113,8 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
     click_chatter("p %p\n", batch->at(0));
     click_chatter("ttl %p\n", &(batch->at(0)->ip_header()->ip_ttl));
+    click_chatter("checksum %p\n", &(batch->at(0)->ip_header()->ip_sum));
+    click_chatter("dst %p\n", &(batch->at(0)->ip_header()->ip_dst));
 
     int count = batch->count();
 
@@ -176,7 +178,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         ttl2 = _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, mpool, 1);
         ttl2 = _mm512_and_si512(ttl2, ttl_mask);
 		ttl = _mm512_or_si512(ttl, ttl2);
-
 
         /*
         __m512i one = _mm512_set1_epi8(1);
