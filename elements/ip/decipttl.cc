@@ -209,14 +209,14 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
             shuffle_mask = _mm512_set_epi8(7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 23, 22, 21, 20, 19, 18, 17, 16, 31, 30, 29, 28, 27, 26, 25, 24, 39, 38, 37, 36, 35, 34, 33, 32, 47, 46, 45, 44, 43, 42, 41, 40, 55, 54, 53, 52, 51, 50, 49, 48, 63, 62, 61, 60, 59, 58, 57, 56);
 
+            __m512i dst_ip = _mm512_i32gather_epi32(indices, mpool, 1);
+
             __m512i F = _mm512_set1_epi32(0xF0000000U);
             __m512i E = _mm512_set1_epi32(0xE0000000U);
             if(*(char *)&dst_ip == 1) {
 				F = _mm512_shuffle_epi8(F, shuffle_mask);
 				E = _mm512_shuffle_epi8(E, shuffle_mask);
 			}
-
-            __m512i dst_ip = _mm512_i32gather_epi32(indices, mpool, 1);
 
 			mask_multicast = _mm512_cmpeq_epi32_mask(_mm512_and_si512(dst_ip, F), E);
 
