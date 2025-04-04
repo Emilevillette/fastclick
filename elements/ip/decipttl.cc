@@ -139,7 +139,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		*/
 
         __m512i indices = _mm512_loadu_si512((__m512i*)offsets);
-        __m512i _mpool = _mm512_set1_epi32((int)DPDKDevice::get_mpool(0));
+        __m512i _mpool = _mm512_set1_epi32((uint64_t)DPDKDevice::get_mpool(0));
         indices = _mm512_sub_epi32(indices, _mpool);
         // compare the values in indices with TTL_OFFSET, if they are equal, set the corresponding bit to 0, we will gather with this mask
         __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(TTL_OFFSET));
