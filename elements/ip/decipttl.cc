@@ -233,7 +233,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         // Store the new TTL
         __m512i gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFF00), _mm512_i32gather_epi32(indices, mpool, 1));
 		gathered = _mm512_or_si512(gathered, _mm512_and_si512(ttl, _mm512_set1_epi32(0x00FF)));
-        _mm512_mask_i32scatter_epi32(indices, mask_multicast, indices, gathered, 1);
+        _mm512_mask_i32scatter_epi32(mpool, mask_multicast, indices, gathered, 1);
 
         /*
         //repeat for the rest of the packets
