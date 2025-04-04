@@ -202,10 +202,10 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         // Mask for multicast packets, mask is 0xFFFF by default
         __m512i shuffle_mask;
         if(!_multicast) {
-			indices = _mm512_add_epi8(_mm512_sub_epi8(indices, TTL_OFFSET), _mm512_set1_epi8(IP_DST_OFFSET));
-			indices2 = _mm512_add_epi8(_mm512_sub_epi8(indices2, TTL_OFFSET), _mm512_set1_epi8(IP_DST_OFFSET));
-			indices3 = _mm512_add_epi8(_mm512_sub_epi8(indices3, TTL_OFFSET), _mm512_set1_epi8(IP_DST_OFFSET));
-			indices4 = _mm512_add_epi8(_mm512_sub_epi8(indices4, TTL_OFFSET), _mm512_set1_epi8(IP_DST_OFFSET));
+			indices = _mm512_add_epi32(_mm512_sub_epi32(indices, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(IP_DST_OFFSET));
+			indices2 = _mm512_add_epi32(_mm512_sub_epi32(indices2, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(IP_DST_OFFSET));
+			indices3 = _mm512_add_epi32(_mm512_sub_epi32(indices3, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(IP_DST_OFFSET));
+			indices4 = _mm512_add_epi32(_mm512_sub_epi32(indices4, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(IP_DST_OFFSET));
 
             shuffle_mask = _mm512_set_epi8(7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 23, 22, 21, 20, 19, 18, 17, 16, 31, 30, 29, 28, 27, 26, 25, 24, 39, 38, 37, 36, 35, 34, 33, 32, 47, 46, 45, 44, 43, 42, 41, 40, 55, 54, 53, 52, 51, 50, 49, 48, 63, 62, 61, 60, 59, 58, 57, 56);
 
