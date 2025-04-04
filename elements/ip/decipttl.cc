@@ -117,33 +117,17 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
     uint16_t dst_checksum[16] = {0};
 
     // Since we are working with a checksum of 16 bits, we have 256/16 = 16 packets per iteration
-    for(int iter = 0; iter < count; iter = iter + 64) {
-        /*__m512i indices = _mm512_set_epi32(15*PACKET_LENGTH + TTL_OFFSET, 14*PACKET_LENGTH + TTL_OFFSET,
-                                           13*PACKET_LENGTH + TTL_OFFSET, 12*PACKET_LENGTH + TTL_OFFSET,
-										   11*PACKET_LENGTH + TTL_OFFSET, 10*PACKET_LENGTH + TTL_OFFSET,
-                                           9*PACKET_LENGTH + TTL_OFFSET, 8*PACKET_LENGTH + TTL_OFFSET,
-                                           7*PACKET_LENGTH + TTL_OFFSET, 6*PACKET_LENGTH + TTL_OFFSET,
-                                           5*PACKET_LENGTH + TTL_OFFSET, 4*PACKET_LENGTH + TTL_OFFSET,
-                                           3*PACKET_LENGTH + TTL_OFFSET, 2*PACKET_LENGTH + TTL_OFFSET,
-                                           1*PACKET_LENGTH + TTL_OFFSET, TTL_OFFSET);
-		*/
+    rte_mempool *mpool = DPDKDevice::get_mpool(0);
 
+    for(int iter = 0; iter < count; iter = iter + 64) {
         int32_t offsets[16];
 		batch->at_range_offset(offsets, iter, 16);
 
-        /*
-        __m512i indices = _mm512_set_epi32(addr[15], addr[14], addr[13], addr[12],
-                                           addr[11], addr[10], addr[9], addr[8],
-                                           addr[7], addr[6], addr[5], addr[4],
-                                           addr[3], addr[2], addr[1], addr[0]);
-		*/
-
         __m512i indices = _mm512_loadu_si512((__m512i*)offsets);
-        __m512i _mpool = _mm512_set1_epi32((uint64_t)DPDKDevice::get_mpool(0));
+        __m512i _mpool = _mm512_set1_epi32((uint64_t)mpool);
         indices = _mm512_sub_epi32(indices, _mpool);
-        // compare the values in indices with TTL_OFFSET, if they are equal, set the corresponding bit to 0, we will gather with this mask
-        __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(TTL_OFFSET));
-		mask = 1000000000000000;
+        // compare the values in indices with 0, if they are equal, set the corresponding bit to 0, we will gather with this mask
+        __mmask16 mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(0));
 
 	    printf("Mask: 0b");
 	    for (int i = 15; i >= 0; i--) {  // Print from MSB to LSB
@@ -151,29 +135,47 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 	    }
 	    printf("\n");
 
-
-        /*
-        __m512i indices = _mm512_set_epi32((int)addr[15], (int)addr[14], (int)addr[13], (int)addr[12],
-                                           (int)addr[11], (int)addr[10], (int)addr[9], (int)addr[8],
-                                           (int)addr[7], (int)addr[6], (int)addr[5], (int)addr[4],
-                                           (int)addr[3], (int)addr[2], (int)addr[1], (int)addr[0]);
-		*/
-        //click_chatter("Addresses: %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], addr[6], addr[7], addr[8], addr[9], addr[10], addr[11], addr[12], addr[13], addr[14], addr[15]);
 		click_chatter("offsets: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", offsets[0], offsets[1], offsets[2], offsets[3], offsets[4], offsets[5], offsets[6], offsets[7], offsets[8], offsets[9], offsets[10], offsets[11], offsets[12], offsets[13], offsets[14], offsets[15]);
 		click_chatter("base: %p", DPDKDevice::get_mpool(0));
 
+        __m512i ttl_mask = _mm512_set1_epi32(0xff000000);
+
         // Decrement the TTL
-        __m512i ttl = _mm512_slli_epi64(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, DPDKDevice::get_mpool(0), 1), 24);
-		/*
-        __m512i ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 16);
+        __m512i ttl = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, mpool, 1), 24);
+		ttl = _mm512_and_si512(ttl, ttl_mask);
+        ttl_mask = _mm512_srli_epi32(ttl_mask, 8);
+
+        batch->at_range_offset(offsets, iter+16, 16);
+		indices = _mm512_loadu_si512((__m512i*)offsets);
+        indices = _mm512_sub_epi32(indices, _mpool);
+        mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(0));
+
+        __m512i ttl2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, mpool, 1), 16);
+       	ttl2 = _mm512_and_si512(ttl2, ttl_mask);
+        ttl_mask = _mm512_srli_epi32(ttl_mask, 8);
         ttl = _mm512_or_si512(ttl, ttl2);
 
-		ttl2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)nullptr, 1), 8);
+        batch->at_range_offset(offsets, iter+32, 16);
+		indices = _mm512_loadu_si512((__m512i*)offsets);
+        indices = _mm512_sub_epi32(indices, _mpool);
+        mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(0));
 
-        __m512i ttl3 = _mm512_i32gather_epi32(indices, (int const*)nullptr, 1);
-        ttl2 = _mm512_or_si512(ttl2, ttl3);
-        ttl = _mm512_or_si512(ttl, ttl2);
+        ttl2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, mpool, 1), 8);
+        ttl2 = _mm512_and_si512(ttl2, ttl_mask);
+        ttl_mask = _mm512_srli_epi32(ttl_mask, 8);
+        ttl = _mm512_or_si512(ttl, ttl2)
 
+		batch->at_range_offset(offsets, iter+48, 16);
+		indices = _mm512_loadu_si512((__m512i*)offsets);
+        indices = _mm512_sub_epi32(indices, _mpool);
+        mask = _mm512_cmpneq_epi32_mask(indices, _mm512_set1_epi32(0));
+
+        ttl2 = _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, mpool, 1);
+        ttl2 = _mm512_and_si512(ttl2, ttl_mask);
+		ttl = _mm512_or_si512(ttl, ttl2)
+
+
+        /*
         __m512i one = _mm512_set1_epi8(1);
         ttl = _mm512_sub_epi8 (ttl, one);
 
