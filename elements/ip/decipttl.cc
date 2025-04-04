@@ -163,7 +163,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         ttl2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, mpool, 1), 8);
         ttl2 = _mm512_and_si512(ttl2, ttl_mask);
         ttl_mask = _mm512_srli_epi32(ttl_mask, 8);
-        ttl = _mm512_or_si512(ttl, ttl2)
+        ttl = _mm512_or_si512(ttl, ttl2);
 
 		batch->at_range_offset(offsets, iter+48, 16);
 		indices = _mm512_loadu_si512((__m512i*)offsets);
@@ -172,7 +172,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         ttl2 = _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, mpool, 1);
         ttl2 = _mm512_and_si512(ttl2, ttl_mask);
-		ttl = _mm512_or_si512(ttl, ttl2)
+		ttl = _mm512_or_si512(ttl, ttl2);
 
 
         /*
