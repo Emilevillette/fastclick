@@ -111,6 +111,9 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         return;
     }
 
+    click_chatter("p %p\n", batch->at(0));
+    click_chatter("ttl %p\n", &(batch->at(0)->ip_header()->ip_ttl));
+
     int count = batch->count();
 
     uint8_t dst_ttl[16] = {0};
