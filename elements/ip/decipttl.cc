@@ -242,13 +242,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         click_chatter("TTL VALUE AFTER %d", batch->at(0)->ip_header()->ip_ttl);
 
-    uint8_t* ptr = (uint8_t*)&ttl;
-    for (int i = 0; i < 64; i++) {
-        click_chatter("%d ", ptr[i]);
-    }
-
-
-
 
         /*
         //repeat for the rest of the packets
