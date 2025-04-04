@@ -188,7 +188,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         ttl = _mm512_sub_epi8 (ttl, one);
 
         // Mask The TTL to drop packets with TTL > 1
-        __mmask64 mask = _mm512_cmpgt_epu8_mask(ttl, one);
+        __mmask64 drop_mask = _mm512_cmpgt_epu8_mask(ttl, one);
 
         // Mask for multicast packets
         __m512i shuffle_mask;
@@ -322,11 +322,11 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         // check if the mask is equal to a vector of 1, then all the packets have TTL > 1.
         // If not, we need to check the TTL of each packet, and drop the ones with TTL <= 1
-        if(mask != 0xFFFFFFFFFFFFFFFFULL) {
+        if(drop_mask != 0xFFFFFFFFFFFFFFFFULL) {
         	// there are packets to drop !!
             int n_drops = 0;
             for(int i = 0; i < 64; i++) {
-            	if((mask & (1 << i)) == 0) {
+            	if((drop_mask & (1 << i)) == 0) {
             		// drop the packet
                     ++_drops;
 					checked_output_push(1, batch->at(iter + i - n_drops));
