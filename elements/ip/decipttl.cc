@@ -251,10 +251,10 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(ttl, _mm512_set1_epi32(0x00FF)));
         _mm512_mask_i32scatter_epi32(mpool, mask_multicast4, indices4, gathered, 1);
 
-        _mm512 checksum_indices = _mm512_add_epi32(_mm512_sub_epi32(indices, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
-        _mm512 checksum_indices2 = _mm512_add_epi32(_mm512_sub_epi32(indices2, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
-        _mm512 checksum_indices3 = _mm512_add_epi32(_mm512_sub_epi32(indices3, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
-        _mm512 checksum_indices4 = _mm512_add_epi32(_mm512_sub_epi32(indices4, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
+        _mm512i checksum_indices = _mm512_add_epi32(_mm512_sub_epi32(indices, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
+        _mm512i checksum_indices2 = _mm512_add_epi32(_mm512_sub_epi32(indices2, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
+        _mm512i checksum_indices3 = _mm512_add_epi32(_mm512_sub_epi32(indices3, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
+        _mm512i checksum_indices4 = _mm512_add_epi32(_mm512_sub_epi32(indices4, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
 
         // similar to the TTL, we need to gather the checksums of the packets
         __m512i checksum = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast,checksum_indices, mpool, 1), 16);
