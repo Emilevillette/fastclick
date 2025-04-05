@@ -115,7 +115,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
     click_chatter("ttl %p\n", &(batch->at(0)->ip_header()->ip_ttl));
     click_chatter("TTL VALUE %d", batch->at(0)->ip_header()->ip_ttl);
     click_chatter("checksum %p\n", &(batch->at(0)->ip_header()->ip_sum));
-    click_chatter('checksum value %d', batch->at(0)->ip_header()->ip_sum);
+    click_chatter("checksum value %d", batch->at(0)->ip_header()->ip_sum);
     click_chatter("dst %p\n", &(batch->at(0)->ip_header()->ip_dst));
 
 
