@@ -115,6 +115,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
     click_chatter("ttl %p\n", &(batch->at(0)->ip_header()->ip_ttl));
     click_chatter("TTL VALUE %d", batch->at(0)->ip_header()->ip_ttl);
     click_chatter("checksum %p\n", &(batch->at(0)->ip_header()->ip_sum));
+    click_chatter('checksum value %d', batch->at(0)->ip_header()->ip_sum);
     click_chatter("dst %p\n", &(batch->at(0)->ip_header()->ip_dst));
 
 
@@ -305,6 +306,8 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast, checksum_indices, mpool, 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(checksum,16), _mm512_set1_epi32(0xFFFF)));
         _mm512_mask_i32scatter_epi32(mpool, mask_multicast, checksum_indices, gathered, 1);
+
+        click_chatter("checksum value after %d", batch->at(0)->ip_header()->ip_sum);
 
         gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast2, checksum_indices2, mpool, 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(checksum, _mm512_set1_epi32(0xFFFF)));

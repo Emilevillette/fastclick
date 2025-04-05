@@ -102,7 +102,7 @@ public:
         ((MemoryPoolNode*)p)->next = first;
         first = (MemoryPoolNode*)p;
         current_alloc--;
-        click_chatter("RELEASE MEMORY, current alloc: %u, max alloc: %u, alloc count: %u, current cpu: %u", current_alloc, max_alloc, alloc_count, click_current_cpu_id());
+        //click_chatter("RELEASE MEMORY, current alloc: %u, max alloc: %u, alloc count: %u, current cpu: %u", current_alloc, max_alloc, alloc_count, click_current_cpu_id());
     }
 
 private:
