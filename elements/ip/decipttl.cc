@@ -199,7 +199,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         // Mask The TTL to drop packets with TTL > 1
         __mmask64 drop_mask = _mm512_cmpgt_epu8_mask(ttl, one);
 
-        // Mask for multicast packets, mask is 0xFFFF by default
         __m512i shuffle_mask;
         if(!_multicast) {
 			__m512i mc_indices = _mm512_add_epi32(_mm512_sub_epi32(indices, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(IP_DST_OFFSET));
@@ -251,23 +250,19 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFF00), _mm512_i32gather_epi32(indices4, mpool, 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(ttl, _mm512_set1_epi32(0x00FF)));
         _mm512_mask_i32scatter_epi32(mpool, mask_multicast4, indices4, gathered, 1);
-        /*
-        indices = _mm512_set_epi32(15*PACKET_LENGTH + CHECKSUM_OFFSET, 14*PACKET_LENGTH + CHECKSUM_OFFSET,
-                                   13*PACKET_LENGTH + CHECKSUM_OFFSET, 12*PACKET_LENGTH + CHECKSUM_OFFSET,
-                                   11*PACKET_LENGTH + CHECKSUM_OFFSET, 10*PACKET_LENGTH + CHECKSUM_OFFSET,
-                                   9*PACKET_LENGTH + CHECKSUM_OFFSET, 8*PACKET_LENGTH + CHECKSUM_OFFSET,
-                                   7*PACKET_LENGTH + CHECKSUM_OFFSET, 6*PACKET_LENGTH + CHECKSUM_OFFSET,
-                                   5*PACKET_LENGTH + CHECKSUM_OFFSET, 4*PACKET_LENGTH + CHECKSUM_OFFSET,
-                                   3*PACKET_LENGTH + CHECKSUM_OFFSET, 2*PACKET_LENGTH + CHECKSUM_OFFSET,
-                                   1*PACKET_LENGTH + CHECKSUM_OFFSET, CHECKSUM_OFFSET);
+
+        _mm512 checksum_indices = _mm512_add_epi32(_mm512_sub_epi32(indices, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
+        _mm512 checksum_indices2 = _mm512_add_epi32(_mm512_sub_epi32(indices2, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
+        _mm512 checksum_indices3 = _mm512_add_epi32(_mm512_sub_epi32(indices3, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
+        _mm512 checksum_indices4 = _mm512_add_epi32(_mm512_sub_epi32(indices4, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
 
         // similar to the TTL, we need to gather the checksums of the packets
-        __m512i checksum = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter)), 1), 16);
-        __m512i checksum2 = _mm512_and_si512(_mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 16)), 1), _mm512_set1_epi32(0x0000FFFF));
+        __m512i checksum = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast,checksum_indices, mpool, 1), 16);
+        __m512i checksum2 = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast2, checksum_indices2, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
         checksum = _mm512_or_si512(checksum, checksum2);
 
-        checksum2 = _mm512_slli_epi32(_mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 32)), 1), 16);
-        __m512i checksum3 = _mm512_and_si512(_mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 48)), 1), _mm512_set1_epi32(0x0000FFFF));
+        checksum2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast3, checksum_indices3, mpool, 1), 16);
+        __m512i checksum3 = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast4, checksum_indices4, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
         checksum2 = _mm512_or_si512(checksum2, checksum3);
 
         // https://stackoverflow.com/questions/12791864/c-program-to-check-little-vs-big-endian/12792301#12792301
@@ -307,21 +302,21 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         checksum2 = _mm512_xor_si512(checksum2, _mm512_set1_epi32(0xFFFFFFFF));
 
         // also store similar to the TTL
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter)), 1));
-        gathered = _mm512_or_si512(gathered, _mm512_and_si512(checksum, _mm512_set1_epi32(0xFFFF)));
-        _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter)), mask_multicast, indices, gathered, 1);
-
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 16)), 1));
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast, checksum_indices, mpool, 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(checksum,16), _mm512_set1_epi32(0xFFFF)));
-        _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 16)), mask_multicast2, indices, gathered, 1);
+        _mm512_mask_i32scatter_epi32(mpool, mask_multicast, checksum_indices, gathered, 1);
 
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 32)), 1));
-        gathered = _mm512_or_si512(gathered, _mm512_and_si512(checksum2, _mm512_set1_epi32(0xFFFF)));
-        _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 32)), mask_multicast3, indices, gathered, 1);
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast2, checksum_indices2, mpool, 1));
+        gathered = _mm512_or_si512(gathered, _mm512_and_si512(checksum, _mm512_set1_epi32(0xFFFF)));
+        _mm512_mask_i32scatter_epi32(mpool, mask_multicast2, checksum_indices2, gathered, 1);
 
-        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_i32gather_epi32(indices, (int const*)((char*)batch->at(iter + 48)), 1));
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast3, checksum_indices3, mpool, 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(checksum2,16), _mm512_set1_epi32(0xFFFF)));
-        _mm512_mask_i32scatter_epi32((int*)((char*)batch->at(iter + 48)), mask_multicast4, indices, gathered, 1);
+        _mm512_mask_i32scatter_epi32(mpool, mask_multicast3, checksum_indices3, gathered, 1);
+
+        gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFF0000), _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast4, checksum_indices4, mpool, 1));
+        gathered = _mm512_or_si512(gathered, _mm512_and_si512(checksum2, _mm512_set1_epi32(0xFFFF)));
+        _mm512_mask_i32scatter_epi32(mpool, mask_multicast4, checksum_indices4, gathered, 1);
 
         // check if the mask is equal to a vector of 1, then all the packets have TTL > 1.
         // If not, we need to check the TTL of each packet, and drop the ones with TTL <= 1
@@ -339,10 +334,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
             	}
             }
         }
-        */
-
     }
-
 }
 
 #endif

@@ -4,9 +4,9 @@ FromDPDKDevice(0, MAXTHREADS 1, MODE none, VERBOSE 99) -> c :: Classifier(12/080
 c[0]
     -> EtherMirror()
     -> Strip(14)
-    -> CheckIPHeader()
+    -> CheckIPHeader(CHECKSUM true, VERBOSE true)
     -> DecIPTTL
-    -> CheckIPHeader(CHECKSUM true)
+    -> CheckIPHeader(CHECKSUM true, VERBOSE true)
     -> IPMirror()
     //-> Queue
     -> Unstrip(14)
