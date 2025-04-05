@@ -270,7 +270,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 
         __m512i checksum = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast, checksum_indices, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
         __m512i checksum2 = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast2, checksum_indices2, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
-
         __m512i checksum3 = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast3, checksum_indices3, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
         __m512i checksum4 = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast4, checksum_indices4, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
 
@@ -283,7 +282,11 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		if(*(char *)&n == 1) {
             click_chatter("little endian");
             // Since the checksum is stored in network byte order, and the system is little endian, we need to convert it to host byte order
-			shuffle_mask = _mm512_set_epi8(3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12, 19, 18, 17, 16, 23, 22, 21, 20, 27, 26, 25, 24, 31, 30, 29, 28, 35, 34, 33, 32, 39, 38, 37, 36, 43, 42, 41, 40, 47, 46, 45, 44, 51, 50, 49, 48, 55, 54, 53, 52, 59, 58, 57, 56, 63, 62, 61, 60);
+			const __m512i shuffle_mask = _mm512_set_epi8(
+    			60, 61, 62, 63, 56, 57, 58, 59, 52, 53, 54, 55, 48, 49, 50, 51, 44, 45, 46, 47, 40, 41, 42, 43, 36, 37, 38, 39, 32, 33, 34, 35,
+    			28, 29, 30, 31, 24, 25, 26, 27, 20, 21, 22, 23, 16, 17, 18, 19,
+    			12, 13, 14, 15,  8,  9, 10, 11,  4,  5,  6,  7,  0,  1,  2,  3
+			);
 			checksum = _mm512_shuffle_epi8(checksum, shuffle_mask);
 			checksum2 = _mm512_shuffle_epi8(checksum2, shuffle_mask);
 			checksum3 = _mm512_shuffle_epi8(checksum3, shuffle_mask);
