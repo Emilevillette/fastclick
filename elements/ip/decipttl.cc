@@ -111,12 +111,13 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         return;
     }
 
+    click_chatter("------------------------------");
     click_chatter("p %p\n", batch->at(0));
-    click_chatter("ttl %p\n", &(batch->at(0)->ip_header()->ip_ttl));
+    //click_chatter("ttl %p\n", &(batch->at(0)->ip_header()->ip_ttl));
     click_chatter("TTL VALUE %d", batch->at(0)->ip_header()->ip_ttl);
     click_chatter("checksum %p\n", &(batch->at(0)->ip_header()->ip_sum));
     click_chatter("checksum value %d", batch->at(0)->ip_header()->ip_sum);
-    click_chatter("dst %p\n", &(batch->at(0)->ip_header()->ip_dst));
+    //click_chatter("dst %p\n", &(batch->at(0)->ip_header()->ip_dst));
 
 
     int count = batch->count();
@@ -295,23 +296,23 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         checksum4 = _mm512_xor_si512(checksum4, _mm512_set1_epi32(0xFFFFFFFF));
 
         // Calculate the new checksum
-        __m512i ffff = _mm512_set1_epi16(0xFFFF);
-        __m512i feff = _mm512_set1_epi16(0xFEFF);
+        __m512i ffff = _mm512_set1_epi32(0xFFFF);
+        __m512i feff = _mm512_set1_epi32(0xFEFF);
         checksum = _mm512_and_si512(checksum, ffff);
-        checksum = _mm512_add_epi16(checksum, feff);
-        checksum = _mm512_add_epi16(checksum,  _mm512_srli_epi16(checksum,16));
+        checksum = _mm512_add_epi32(checksum, feff);
+        checksum = _mm512_add_epi32(checksum,  _mm512_srli_epi32(checksum,16));
 
         checksum2 = _mm512_and_si512(checksum2, ffff);
-        checksum2 = _mm512_add_epi16(checksum2, feff);
-        checksum2 = _mm512_add_epi16(checksum2,  _mm512_srli_epi16(checksum2,16));
+        checksum2 = _mm512_add_epi32(checksum2, feff);
+        checksum2 = _mm512_add_epi32(checksum2,  _mm512_srli_epi32(checksum2,16));
 
         checksum3 = _mm512_and_si512(checksum3, ffff);
-        checksum3 = _mm512_add_epi16(checksum3, feff);
-        checksum3 = _mm512_add_epi16(checksum3,  _mm512_srli_epi16(checksum3,16));
+        checksum3 = _mm512_add_epi32(checksum3, feff);
+        checksum3 = _mm512_add_epi32(checksum3,  _mm512_srli_epi32(checksum3,16));
 
         checksum4 = _mm512_and_si512(checksum4, ffff);
-        checksum4 = _mm512_add_epi16(checksum4, feff);
-        checksum4 = _mm512_add_epi16(checksum4,  _mm512_srli_epi16(checksum4,16));
+        checksum4 = _mm512_add_epi32(checksum4, feff);
+        checksum4 = _mm512_add_epi32(checksum4,  _mm512_srli_epi32(checksum4,16));
 
         // Convert back to host byte order
         if(*(char *)&n == 1) {
