@@ -336,6 +336,10 @@ public :
         return count() == 0 ? nullptr : packets[count() - 1];
     }
 
+    #if CLICK_PACKET_USE_DPDK
+    inline rte_mempool* get_mempool();
+    #endif
+
     /**
      * Return the packet at position pos
      *
@@ -350,11 +354,13 @@ public :
 		return packets[pos];
     }
 
+    #if CLICK_PACKET_USE_DPDK
     inline void at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count) {
         for(unsigned int i = 0; i < count; i++) {
-            offsets[i] = (char *)at(pos + i) - (char *)0;
+            offsets[i] = (char *)at(pos + i) - (char *)get_mempool();
         }
     }
+    #endif
 
     /**
      * set the packet p at position pos

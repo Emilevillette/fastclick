@@ -139,9 +139,9 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		__mmask16 mask_multicast = mask;
 
 
-        __m512i _mpool = _mm512_set1_epi32((uint64_t)mpool);
+        //__m512i _mpool = _mm512_set1_epi32((uint64_t)mpool);
 		indices = _mm512_add_epi32(indices, _mm512_set1_epi32(TTL_OFFSET));
-        indices = _mm512_sub_epi32(indices, _mpool);
+        //indices = _mm512_sub_epi32(indices, _mpool);
 
 
 	    printf("Mask: 0b");
@@ -164,7 +164,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		__m512i indices2 = _mm512_loadu_si512((__m512i*)offsets);
         mask = _mm512_cmpneq_epi32_mask(indices2, _mm512_set1_epi32(0));
         __mmask16 mask_multicast2 = mask;
-        indices2 = _mm512_sub_epi32(indices2, _mpool);
+        //indices2 = _mm512_sub_epi32(indices2, _mpool);
         indices2 = _mm512_add_epi32(indices2, _mm512_set1_epi32(TTL_OFFSET));
 
         __m512i ttl2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices2, mpool, 1), 16);
@@ -176,7 +176,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		__m512i indices3 = _mm512_loadu_si512((__m512i*)offsets);
         mask = _mm512_cmpneq_epi32_mask(indices3, _mm512_set1_epi32(0));
 		__mmask16 mask_multicast3 = mask;
-        indices3 = _mm512_sub_epi32(indices3, _mpool);
+        //indices3 = _mm512_sub_epi32(indices3, _mpool);
         indices3 = _mm512_add_epi32(indices3, _mm512_set1_epi32(TTL_OFFSET));
 
         ttl2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices3, mpool, 1), 8);
@@ -188,7 +188,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		__m512i indices4 = _mm512_loadu_si512((__m512i*)offsets);
         mask = _mm512_cmpneq_epi32_mask(indices4, _mm512_set1_epi32(0));
 		__mmask16 mask_multicast4 = mask;
-        indices4 = _mm512_sub_epi32(indices4, _mpool);
+        //indices4 = _mm512_sub_epi32(indices4, _mpool);
         indices4 = _mm512_add_epi32(indices4, _mm512_set1_epi32(TTL_OFFSET));
 
         ttl2 = _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices4, mpool, 1);
@@ -259,16 +259,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         __m512i checksum_indices4 = _mm512_add_epi32(_mm512_sub_epi32(indices4, _mm512_set1_epi32(TTL_OFFSET)), _mm512_set1_epi32(CHECKSUM_OFFSET));
 
         // similar to the TTL, we need to gather the checksums of the packets
-        /*
-        __m512i checksum = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast,checksum_indices, mpool, 1), 16);
-        __m512i checksum2 = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast2, checksum_indices2, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
-        checksum = _mm512_or_si512(checksum, checksum2);
-
-        checksum2 = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast3, checksum_indices3, mpool, 1), 16);
-        __m512i checksum3 = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast4, checksum_indices4, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
-        checksum2 = _mm512_or_si512(checksum2, checksum3);
-         */
-
         __m512i checksum = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast, checksum_indices, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
         __m512i checksum2 = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast2, checksum_indices2, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
         __m512i checksum3 = _mm512_and_si512(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask_multicast3, checksum_indices3, mpool, 1), _mm512_set1_epi32(0x0000FFFF));
@@ -314,7 +304,7 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         checksum4 = _mm512_add_epi32(checksum4, feff);
         checksum4 = _mm512_add_epi32(checksum4,  _mm512_srli_epi32(checksum4,16));
 
-        // Convert back to host byte order
+        // Convert back to network byte order
         if(*(char *)&n == 1) {
             checksum = _mm512_shuffle_epi8(checksum, shuffle_mask);
             checksum2 = _mm512_shuffle_epi8(checksum2, shuffle_mask);
