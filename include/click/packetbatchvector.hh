@@ -337,7 +337,9 @@ public :
     }
 
     #if CLICK_PACKET_USE_DPDK
-    inline rte_mempool* get_mempool();
+    rte_mempool* get_mempool_forward();
+
+    __rte_always_inline  rte_mempool* get_mempool() { return get_mempool_forward();}
     #endif
 
     /**
@@ -357,7 +359,7 @@ public :
     #if CLICK_PACKET_USE_DPDK
     inline void at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count) {
         for(unsigned int i = 0; i < count; i++) {
-            offsets[i] = (char *)at(pos + i) - (char *)get_mempool();
+            offsets[i] = at(pos-i) != nullptr ? (char *)at(pos + i) - (char *)get_mempool() : 0;
         }
     }
     #endif

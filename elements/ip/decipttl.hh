@@ -59,7 +59,7 @@ class DecIPTTL : public BatchElement { public:
     PacketBatch *simple_action_batch(PacketBatch *);
 #endif
 
-#if HAVE_BATCH && HAVE_AVX512 && HAVE_VECTOR && HAVE_DPDK_PACKET_POOL
+#if HAVE_BATCH && HAVE_AVX512 && HAVE_VECTOR && CLICK_PACKET_USE_DPDK
     void simple_action_avx(PacketBatch *&batch, std::function<void(Packet *)> on_drop);
 #endif
 

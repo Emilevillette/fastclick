@@ -28,7 +28,7 @@ per_thread<MemoryPool<PacketBatchVector>> PacketBatchVector::batch_pool;
 #if HAVE_BATCH
 
 #if CLICK_PACKET_USE_DPDK
-rte_mempool *PacketBatchVector::get_mempool() {
+rte_mempool *PacketBatchVector::get_mempool_forward() {
     return DPDKDevice::get_mpool(0);
 }
 #endif

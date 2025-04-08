@@ -88,7 +88,7 @@ DecIPTTL::simple_action(Packet *p)
 PacketBatch *
 DecIPTTL::simple_action_batch(PacketBatch *batch)
 {
-  #if HAVE_BATCH && HAVE_AVX512 && HAVE_VECTOR && HAVE_DPDK_PACKET_POOL
+  #if HAVE_BATCH && HAVE_AVX512 && HAVE_VECTOR && CLICK_PACKET_USE_DPDK
 	simple_action_avx(batch, [](Packet *){});
   #else
     EXECUTE_FOR_EACH_PACKET_DROPPABLE(DecIPTTL::simple_action, batch, [](Packet *){});
@@ -97,7 +97,7 @@ DecIPTTL::simple_action_batch(PacketBatch *batch)
 }
 #endif
 
-#if HAVE_BATCH && HAVE_AVX512 && HAVE_VECTOR && HAVE_DPDK_PACKET_POOL
+#if HAVE_BATCH && HAVE_AVX512 && HAVE_VECTOR && CLICK_PACKET_USE_DPDK
 
 #define TTL_OFFSET 374
 #define CHECKSUM_OFFSET 376
