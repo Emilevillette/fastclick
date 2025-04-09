@@ -359,7 +359,11 @@ public :
     #if CLICK_PACKET_USE_DPDK
     inline void at_range_offset(int32_t offsets[16], unsigned int pos, unsigned int count) {
         for(unsigned int i = 0; i < count; i++) {
-            offsets[i] = at(pos + i) != nullptr ? (char *)at(pos + i) - (char *)get_mempool() : nullptr;
+          	if (at(pos + i) == nullptr) {
+                offsets[i] = 0;
+            } else {
+                offsets[i] = (char *)at(pos + i) - (char *)get_mempool();
+            }
         }
     }
     #endif
