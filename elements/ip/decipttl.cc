@@ -251,6 +251,9 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         __mmask16 multicast_masks[4] = {mask_multicast, mask_multicast2, mask_multicast3, mask_multicast4};
         __m512i chksm_indices[4] = {checksum_indices, checksum_indices2, checksum_indices3, checksum_indices4};
         __m512i checksums[4] = {checksum, checksum2, checksum3, checksum4};
+
+        __m512i ffff = _mm512_set1_epi32(0xFFFFFFFF);
+        __m512i feff = _mm512_set1_epi32(0xFEFF);
         for(int i = 0; i < 4; i++) {
             // https://stackoverflow.com/questions/12791864/c-program-to-check-little-vs-big-endian/12792301#12792301
         	// https://stackoverflow.com/questions/4181951/how-to-check-whether-a-system-is-big-endian-or-little-endian
