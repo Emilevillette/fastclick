@@ -257,9 +257,6 @@ Classifier::push_batch(int, PacketBatch * batch)
 							_prog.match,
 							batch,
 							checked_output_push_batch);
-#if HAVE_VECTOR
-    batch->soft_kill();
-#endif
 }
 
 #endif

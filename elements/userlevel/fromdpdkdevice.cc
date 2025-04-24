@@ -418,7 +418,11 @@ for (unsigned i = 0; i < n; ++i) {
             if (head == NULL)
                 head = PacketBatch::start_head(p);
             else
+            #if HAVE_VECTOR
+                head->append_packet(p);
+            #else
                 last->set_next(p);
+            #endif
             last = p;
 #else
             output(0).push(p);

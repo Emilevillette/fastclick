@@ -310,7 +310,7 @@ class PacketBatchVector {
 private:
     Packet* packets[MAX_BATCH_SIZE] = {nullptr};
     int batch_size = 0;
-    static per_thread<MemoryPool<PacketBatchVector>> batch_pool;
+    static MemoryPool<PacketBatchVector> batch_pool;
 
 public :
 
@@ -368,6 +368,18 @@ public :
     }
     #endif
 
+    inline void decrement_refcount() {
+      decrement_refcount(1);
+    }
+
+    inline void decrement_refcount(int nb) {
+        if (batch_size - nb <= 0) {
+            //click_chatter("Error: PacketBatchVector::decrement_refcount: batch size is 0");
+            soft_kill();
+        }
+        batch_size -= nb;
+    }
+
     /**
      * set the packet p at position pos
      *
@@ -392,8 +404,8 @@ public :
      * @return a pointer to a PacketBatchVector allocated with a MemoryPool
      */
     inline static PacketBatchVector * make_packet_batch_from_pool() {
-        PacketBatchVector* b = batch_pool->getMemory();
-        //click_chatter("GET MEMORY, current alloc: %u, max alloc: %u, alloc count: %u, current cpu: %u", batch_pool->current_alloc, batch_pool->max_alloc, batch_pool->alloc_count, click_current_cpu_id());
+        //click_chatter("GET MEMORY, current alloc: %u, max alloc: %u, alloc count: %u, current cpu: %u", batch_pool.current_alloc, batch_pool.max_alloc, batch_pool.alloc_count, click_current_cpu_id());
+      	PacketBatchVector* b = batch_pool.getMemory();
         return b;
     }
 
@@ -555,13 +567,20 @@ public :
      *
      * @param pos The position of the packet to remove
      */
-    inline void pop_at(unsigned int pos) {
+    inline void pop_at(unsigned int pos, bool update_size) {
         if(pos >= count()) {
             click_chatter("Error: PacketBatchVector::pop_at_safe: pos %u is bigger than size of batch %u", pos, count());
             return;
         }
+        //click_chatter("pop_at %u", pos);
         packets[pos] = nullptr;
-        batch_size--;
+        if (update_size) {
+            batch_size--;
+        }
+    }
+
+    inline void pop_at(unsigned int pos) {
+          pop_at(pos, true);
     }
 
     /**
@@ -572,7 +591,7 @@ public :
      */
     inline void pop_at_safe(unsigned int pos) {
         if(pos >= count()) {
-            click_chatter("Error: PacketBatchVector::pop_at_safe: pos %u is bigger than size of batch %u", pos, count());
+            //click_chatter("Error: PacketBatchVector::pop_at_safe: pos %u is bigger than size of batch %u", pos, count());
             return;
         }
         batch_size--;
@@ -674,10 +693,10 @@ public :
      */
      inline void soft_kill() {
         FOR_EACH_PACKET_SAFE_VEC(this,p) {
-            pop_at(i);
+            pop_at(i, false);
         }
 
-        batch_pool->releaseMemory(this);
+        batch_pool.releaseMemory(this);
     }
 
 
@@ -720,8 +739,7 @@ inline void PacketBatchVector::kill() {
         p->kill();
         pop_at(i);
     }
-
-    batch_pool->releaseMemory(this);
+    batch_pool.releaseMemory(this);
 }
 
 #if HAVE_BATCH_RECYCLE

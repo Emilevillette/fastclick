@@ -111,13 +111,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         return;
     }
 
-    click_chatter("------------------------------");
-    click_chatter("p %p\n", batch->at(0));
-    //click_chatter("ttl %p\n", &(batch->at(0)->ip_header()->ip_ttl));
-    click_chatter("TTL VALUE %d", batch->at(0)->ip_header()->ip_ttl);
-    click_chatter("checksum %p\n", &(batch->at(0)->ip_header()->ip_sum));
-    click_chatter("checksum value %d", batch->at(0)->ip_header()->ip_sum);
-    //click_chatter("dst %p\n", &(batch->at(0)->ip_header()->ip_dst));
 
     // Since we are working with a checksum of 16 bits, we have 256/16 = 16 packets per iteration
     rte_mempool *mpool = DPDKDevice::get_mpool(0);
@@ -131,14 +124,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
 		__mmask16 mask_multicast = mask;
 		indices = _mm512_add_epi32(indices, _mm512_set1_epi32(TTL_OFFSET));
 
-	    printf("Mask: 0b");
-	    for (int i = 15; i >= 0; i--) {  // Print from MSB to LSB
-	        printf("%d", (mask >> i) & 1);
-	    }
-	    printf("\n");
-
-		click_chatter("offsets: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", offsets[0], offsets[1], offsets[2], offsets[3], offsets[4], offsets[5], offsets[6], offsets[7], offsets[8], offsets[9], offsets[10], offsets[11], offsets[12], offsets[13], offsets[14], offsets[15]);
-		click_chatter("base: %p", DPDKDevice::get_mpool(0));
         // Decrement the TTL
         __m512i ttl = _mm512_slli_epi32(_mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), mask, indices, mpool, 1), 24);
 		ttl = _mm512_and_si512(ttl, ttl_mask);
@@ -219,8 +204,6 @@ void DecIPTTL::simple_action_avx(PacketBatch *& batch, std::function<void(Packet
         __m512i gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFF00), _mm512_i32gather_epi32(indices, mpool, 1));
 		gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(ttl,24), _mm512_set1_epi32(0x00FF)));
         _mm512_mask_i32scatter_epi32(mpool, mask_multicast, indices, gathered, 1);
-
-        click_chatter("TTL VALUE AFTER %d", batch->at(0)->ip_header()->ip_ttl);
 
 		gathered = _mm512_and_si512(_mm512_set1_epi32(0xFFFFFF00), _mm512_i32gather_epi32(indices2, mpool, 1));
         gathered = _mm512_or_si512(gathered, _mm512_and_si512(_mm512_srli_epi32(ttl,16), _mm512_set1_epi32(0x00FF)));

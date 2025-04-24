@@ -354,6 +354,7 @@ void ToDPDKDevice::push_batch(int, PacketBatch *head)
 #  if !CLICK_PACKET_USE_DPDK && !CLICK_PACKET_INSIDE_DPDK
     BATCH_RECYCLE_START();
 #  endif
+    int count = 0;
     do {
         congestioned = false;
         //First, place the packets in the queue
@@ -367,12 +368,17 @@ void ToDPDKDevice::push_batch(int, PacketBatch *head)
                 click_chatter("No more DPDK buffer");
                 abort();
             }
+            #if HAVE_VECTOR
+            next = head->at(count + 1);
+            #else
             next = p->next();
+            #endif
 
 #  if !CLICK_PACKET_USE_DPDK && !CLICK_PACKET_INSIDE_DPDK
             BATCH_RECYCLE_PACKET_CONTEXT(p);
 #  endif
             p = next;
+            count++;
         }
 
         if (unlikely(p != 0)) {
@@ -411,6 +417,10 @@ void ToDPDKDevice::push_batch(int, PacketBatch *head)
 #  if !CLICK_PACKET_USE_DPDK && !CLICK_PACKET_INSIDE_DPDK
     BATCH_RECYCLE_END();
 #  endif
+
+# if HAVE_VECTOR
+    //head->soft_kill();
+# endif
 }
 # endif //HAVE_BATCH
 
@@ -437,7 +447,11 @@ void ToDPDKDevice::push_batch(int, PacketBatch *head)
         //First, place the packets in the queue
         int count = 0;
         while (p && count < TX_MAX_BURST) {
+            #if HAVE_VECTOR
+            next = head->at(count + 1);
+            #else
             next = p->next();
+            #endif
             struct rte_mbuf* mbuf = DPDKDevice::get_mbuf(p, _create, _this_node);
             if (likely(mbuf != NULL)) {
                 pkts[count] = mbuf;
@@ -483,10 +497,17 @@ void ToDPDKDevice::push_batch(int, PacketBatch *head)
                     add_dropped(count - sent);
                     while (sent < count) {
                         rte_pktmbuf_free(pkts[sent]);
+                        #if HAVE_VECTOR
+                            head->decrement_refcount();
+                        #endif
                         sent++;
                     }
                 }
         }
+        #if HAVE_VECTOR
+            head->decrement_refcount(sent);
+        #endif
+
         if (unlikely(p != 0)) //There are still packets to try sending
             goto sendagain;
 
