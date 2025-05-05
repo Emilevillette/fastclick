@@ -64,11 +64,15 @@ void
 Discard::push_batch(int, PacketBatch *head)
 {
     _count+=head->count();
+    #if HAVE_VECTOR
+	head->decrement_refcount_hard(head->count());
+	#else
     if (is_fullpush()) {
         head->fast_kill_nonatomic();
     } else {
         head->fast_kill();
     }
+	#endif
 }
 #endif
 void

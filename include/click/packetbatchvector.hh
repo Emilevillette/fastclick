@@ -6,6 +6,7 @@
 #include <click/vector.hh>
 #include <click/packet.hh>
 #include <click/memorypool.hh>
+#include <click/config.h>
 CLICK_DECLS
 
 #define BATCH_POOL_INITIAL_SIZE 512
@@ -131,8 +132,9 @@ CLICK_DECLS
                     }\
                 }\
                 for(int i = revised_count; i < count; i++) {\
-                    batch->pop_at(i);\
+                    batch->pop_at(i,false);\
                 }\
+                batch->set_count(revised_count);\
             }
 
 /**
@@ -213,13 +215,19 @@ CLICK_DECLS
         PacketBatchVector* out[(nbatches)];\
         bzero(out,sizeof(PacketBatchVector*)*(nbatches));\
         Packet* p = cep_batch->first();\
+		out[0] = cep_batch;\
+		int zero_actual_index = 0;\
         \
         for (unsigned int i=0; i<cep_batch->count(); i++, p=((PacketBatchVector*) cep_batch)->at(i)) {\
             int o = fnt(p);\
             if (o < 0 || o>=(int)(nbatches)) o = (nbatches - 1);\
-            if(!out[o]) {\
+            if(o != 0) {\
+				out[0]->pop_at_safe(i - zero_actual_index);\
+				zero_actual_index++;\
+			}\
+			if(!out[o]) {\
                 out[o] = PacketBatchVector::make_from_packet(p);\
-            } else {\
+            } else if(o!=0) {\
                 out[o]->append_packet(p);\
             }\
         }\
@@ -234,8 +242,6 @@ CLICK_DECLS
 /**
  * Equivalent to CLASSIFY_EACH_PACKET but ignore the packet if fnt returns -1
  */
-//! initialize properly packetbatches ?
-//! what to do with reinterpret_cast
 #define CLASSIFY_EACH_PACKET_IGNORE_VEC(nbatches,fnt,cep_batch,on_finish)\
     {\
         PacketBatchVector* out[(nbatches)];\
@@ -309,10 +315,28 @@ class PacketBatchVector {
 
 private:
     Packet* packets[MAX_BATCH_SIZE] = {nullptr};
-    int batch_size = 0;
-    static MemoryPool<PacketBatchVector> batch_pool;
+    unsigned int batch_size = 0;
+    static per_thread<MemoryPool<PacketBatchVector>> batch_pool;
 
 public :
+
+    static void init(Bitvector _usable_threads, unsigned int nthreads) {
+        //for(int th_id = 0; th_id < click_max_cpu_ids(); th_id++) {
+            //if(!_usable_threads[th_id]) continue;
+            //click_chatter("Initializing batch pool for thread %d", th_id);
+			//MemoryPool<PacketBatchVector>& pool = batch_pool.get_value(th_id);
+            //pool.~MemoryPool();
+            //new (&pool) MemoryPool<PacketBatchVector>(BATCH_POOL_INITIAL_SIZE);
+        //}
+        //print _usable_threads
+		click_chatter("usable threads: %s", _usable_threads.unparse().c_str());
+        click_chatter("nthreads %u", nthreads);
+        for(unsigned int i = 0; i < nthreads; i++) {
+            if(!_usable_threads[i]) continue;
+            click_chatter("Initializing batch pool for thread %d", i);
+            batch_pool.get_value(i).initialize(BATCH_POOL_INITIAL_SIZE);
+        }
+    }
 
     /**
      * Return the first packet of the batch
@@ -374,11 +398,21 @@ public :
 
     inline void decrement_refcount(int nb) {
         if (batch_size - nb <= 0) {
-            //click_chatter("Error: PacketBatchVector::decrement_refcount: batch size is 0");
             soft_kill();
         }
         batch_size -= nb;
     }
+
+	inline void decrement_refcount_hard() {
+		decrement_refcount_hard(1);
+	}
+
+    inline void decrement_refcount_hard(int nb) {
+		if(batch_size - nb <= 0) {
+			kill();
+		}
+		batch_size -= nb;
+	}
 
     /**
      * set the packet p at position pos
@@ -404,8 +438,10 @@ public :
      * @return a pointer to a PacketBatchVector allocated with a MemoryPool
      */
     inline static PacketBatchVector * make_packet_batch_from_pool() {
-        //click_chatter("GET MEMORY, current alloc: %u, max alloc: %u, alloc count: %u, current cpu: %u", batch_pool.current_alloc, batch_pool.max_alloc, batch_pool.alloc_count, click_current_cpu_id());
-      	PacketBatchVector* b = batch_pool.getMemory();
+        //click_chatter("GET MEMORY, current alloc: %u, max alloc: %u, alloc count: %u, current cpu: %u", batch_pool->current_alloc, batch_pool->max_alloc, batch_pool->alloc_count, click_current_cpu_id());
+        //click_chatter("\n");
+
+      	PacketBatchVector* b = batch_pool->getMemory();
         return b;
     }
 
@@ -446,7 +482,7 @@ public :
     /**
      * Return the number of packets in this batch
      */
-    inline unsigned count() {
+    inline unsigned int count() {
         return batch_size;
     }
 
@@ -484,7 +520,7 @@ public :
      */
     //DEPRECATED
     inline void set_count(unsigned int c) {
-        (void)c;
+        batch_size = c;
     }
 
     /**
@@ -509,8 +545,9 @@ public :
         second = make_from_packet(packets[first_batch_count]);
         for(unsigned int i = first_batch_count + 1; i < count(); i++) {
             second->append_packet(packets[i]);
-            pop_at(i);
+            pop_at(i,false);
         }
+        set_count(first_batch_count);
     }
 
     /**
@@ -536,8 +573,9 @@ public :
         second = make_from_packet(packets[first_batch_count]);
         for(unsigned int i = first_batch_count + 1; i < count(); i++) {
             second->append_packet(packets[i]);
-            pop_at(i);
+            pop_at(i,false);
         }
+        set_count(first_batch_count);
     }
 
     inline PacketBatchVector* split(int first_batch_count) {
@@ -566,13 +604,13 @@ public :
      * Remove the packet at the given position. This does NOT shift the remaning packets to the left, use with caution.
      *
      * @param pos The position of the packet to remove
+     * @param update_size If true, the size of the batch is updated. If false, the size is not updated and the packet
+     * is just removed from the list.
      */
     inline void pop_at(unsigned int pos, bool update_size) {
         if(pos >= count()) {
-            click_chatter("Error: PacketBatchVector::pop_at_safe: pos %u is bigger than size of batch %u", pos, count());
-            return;
+            click_chatter("Error: PacketBatchVector::pop_at: pos %u is bigger than size of batch %u", pos, count());
         }
-        //click_chatter("pop_at %u", pos);
         packets[pos] = nullptr;
         if (update_size) {
             batch_size--;
@@ -591,7 +629,6 @@ public :
      */
     inline void pop_at_safe(unsigned int pos) {
         if(pos >= count()) {
-            //click_chatter("Error: PacketBatchVector::pop_at_safe: pos %u is bigger than size of batch %u", pos, count());
             return;
         }
         batch_size--;
@@ -657,7 +694,11 @@ public :
      * Make a batch composed of a single packet
      */
     inline static PacketBatchVector* make_from_packet(Packet* p) {
-        if (!p) return 0;
+
+      if (!p) {
+        click_chatter("Error: PacketBatchVector::make_from_packet: packet is null");
+        return 0;
+      }
         PacketBatchVector* b = make_packet_batch_from_pool();
         b->append_packet(p);
         return b;
@@ -696,7 +737,7 @@ public :
             pop_at(i, false);
         }
 
-        batch_pool.releaseMemory(this);
+        batch_pool->releaseMemory(this);
     }
 
 
@@ -737,9 +778,9 @@ public :
 inline void PacketBatchVector::kill() {
     FOR_EACH_PACKET_SAFE_VEC(this,p) {
         p->kill();
-        pop_at(i);
+        pop_at(i,false);
     }
-    batch_pool.releaseMemory(this);
+    batch_pool->releaseMemory(this);
 }
 
 #if HAVE_BATCH_RECYCLE

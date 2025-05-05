@@ -2991,6 +2991,8 @@ Configuration Summary:
     CXXFLAGS:                    ${CXXFLAGS}
 
           Batching:              ${enable_batch}
+   Vector batching:              ${enable_vector}
+    AVX512 support:              ${check_avx512}
     Flow Subsystem:              ${enable_flow}
  Context Subsystem:              ${enable_ctx}
        HW Flow API:              ${have_flow_api}

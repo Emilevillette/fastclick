@@ -23,7 +23,7 @@
 
 CLICK_DECLS
 
-MemoryPool<PacketBatchVector> PacketBatchVector::batch_pool;
+per_thread<MemoryPool<PacketBatchVector>> PacketBatchVector::batch_pool;
 
 #if HAVE_BATCH
 
@@ -50,7 +50,7 @@ void PacketBatchVector::fast_kill() {
         BATCH_RECYCLE_PACKET_VEC(p);
         pop_at(i);
     }
-    batch_pool.releaseMemory(this);
+    batch_pool->releaseMemory(this);
     BATCH_RECYCLE_END_VEC();
 }
 
@@ -64,7 +64,7 @@ void PacketBatchVector::fast_kill_nonatomic() {
         BATCH_RECYCLE_PACKET_NONATOMIC_VEC(p);
         pop_at(i);
     }
-    batch_pool.releaseMemory(this);
+    batch_pool->releaseMemory(this);
     BATCH_RECYCLE_END_VEC();
 }
 # endif
