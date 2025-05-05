@@ -162,6 +162,11 @@ int ToDPDKDevice::initialize(ErrorHandler *errh)
         int ret = DPDKDevice::initialize(errh);
         if (ret != 0) return ret;
     }
+
+    #if HAVE_VECTOR
+    Bitvector _usable_threads = get_passing_threads(false);
+    PacketBatch::init(_usable_threads, master()->nthreads());
+    #endif
     return 0;
 }
 
