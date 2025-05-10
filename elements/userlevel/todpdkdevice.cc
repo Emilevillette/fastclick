@@ -167,6 +167,7 @@ int ToDPDKDevice::initialize(ErrorHandler *errh)
     Bitvector _usable_threads = get_passing_threads(false);
     PacketBatch::init(_usable_threads, master()->nthreads());
     #endif
+	click_chatter("EVENT ready");
     return 0;
 }
 
@@ -422,10 +423,6 @@ void ToDPDKDevice::push_batch(int, PacketBatch *head)
 #  if !CLICK_PACKET_USE_DPDK && !CLICK_PACKET_INSIDE_DPDK
     BATCH_RECYCLE_END();
 #  endif
-
-# if HAVE_VECTOR
-    //head->soft_kill();
-# endif
 }
 # endif //HAVE_BATCH
 
@@ -502,9 +499,6 @@ void ToDPDKDevice::push_batch(int, PacketBatch *head)
                     add_dropped(count - sent);
                     while (sent < count) {
                         rte_pktmbuf_free(pkts[sent]);
-                        #if HAVE_VECTOR
-                            head->decrement_refcount();
-                        #endif
                         sent++;
                     }
                 }

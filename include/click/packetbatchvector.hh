@@ -18,7 +18,9 @@ CLICK_DECLS
  *   iteration. Use _SAFE version if you want to modify it on the fly.
  */
 
-#define FOR_EACH_PACKET_VEC(batch,p) Packet *p = batch->first(); for(unsigned int i=0; i < batch->count(); i++, p=((PacketBatchVector *) batch)->at(i))
+#define FOR_EACH_PACKET_VEC(batch,p)\
+				Packet *p = batch->first();\
+				for(unsigned int i=0; i < batch->count(); i++, p=((PacketBatchVector *) batch)->at(i))
 
 /**
  * Iterate over all packets of a batch. The batch cannot be modified during
@@ -465,6 +467,7 @@ public :
         for(unsigned int i = 0; i < head->count(); i++) {
             append_packet(head->at(i));
         }
+		head->soft_kill();
     }
 
     /**
@@ -694,11 +697,10 @@ public :
      * Make a batch composed of a single packet
      */
     inline static PacketBatchVector* make_from_packet(Packet* p) {
-
-      if (!p) {
-        click_chatter("Error: PacketBatchVector::make_from_packet: packet is null");
-        return 0;
-      }
+        if (!p) {
+          click_chatter("Error: PacketBatchVector::make_from_packet: packet is null");
+          return 0;
+        }
         PacketBatchVector* b = make_packet_batch_from_pool();
         b->append_packet(p);
         return b;
