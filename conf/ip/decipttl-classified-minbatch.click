@@ -1,6 +1,7 @@
 FromDPDKDevice(0, VERBOSE 99) -> c :: Classifier(12/0800, -);
 
 c[0]
+    -> MinBatch(BURST 256)
     -> EtherMirror()
     -> Strip(14)
     -> CheckIPHeader(CHECKSUM true, VERBOSE true)

@@ -91,6 +91,7 @@ public:
 
         current_alloc++;
         alloc_count++;
+        //click_chatter("GET MEMORY, current alloc: %u, max alloc: %u, alloc count: %u, current cpu: %u", current_alloc, max_alloc, alloc_count, click_current_cpu_id());
         return (T*)node;
     }
 

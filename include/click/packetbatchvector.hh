@@ -323,14 +323,6 @@ private:
 public :
 
     static void init(Bitvector _usable_threads, unsigned int nthreads) {
-        //for(int th_id = 0; th_id < click_max_cpu_ids(); th_id++) {
-            //if(!_usable_threads[th_id]) continue;
-            //click_chatter("Initializing batch pool for thread %d", th_id);
-			//MemoryPool<PacketBatchVector>& pool = batch_pool.get_value(th_id);
-            //pool.~MemoryPool();
-            //new (&pool) MemoryPool<PacketBatchVector>(BATCH_POOL_INITIAL_SIZE);
-        //}
-        //print _usable_threads
 		click_chatter("usable threads: %s", _usable_threads.unparse().c_str());
         click_chatter("nthreads %u", nthreads);
         for(unsigned int i = 0; i < nthreads; i++) {

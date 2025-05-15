@@ -1,4 +1,4 @@
-FromDPDKDevice(0, VERBOSE 99) -> c :: Classifier(12/0800, -);
+FromDPDKDevice(0, BURST 1, VERBOSE 99) -> c :: Classifier(12/0800, -);
 
 c[0]
     -> EtherMirror()

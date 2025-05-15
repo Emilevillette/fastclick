@@ -1,0 +1,1 @@
+FromDPDKDevice(0, VERBOSE 99) -> EtherMirror() -> ToDPDKDevice(0, BLOCKING false, VERBOSE 99);
